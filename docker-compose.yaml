@@ -1,0 +1,53 @@
+version: '3'
+
+services:
+  emqx1:
+    image: emqx:latest
+    container_name: emqx1
+    environment:
+    - "EMQX_NODE_NAME=emqx@node1.emqx.frix.tech"
+    - "EMQX_CLUSTER__DISCOVERY_STRATEGY=static"
+    - "EMQX_CLUSTER__STATIC__SEEDS=[emqx@node1.emqx.frix.tech, emqx@node2.emqx.frix.tech]"
+    healthcheck:
+      test: ["CMD", "/opt/emqx/bin/emqx", "ctl", "status"]
+      interval: 5s
+      timeout: 25s
+      retries: 5
+    networks:
+      emqx-bridge:
+        aliases:
+        - node1.emqx.frix.tech
+    ports:
+      - 1883:1883
+      - 8083:8083
+      - 8084:8084
+      - 8883:8883
+      - 18083:18083 
+    volumes:
+      - /volume1/docker/emqx/data/emqx1:/opt/emqx/data
+      - /volume1/docker/emqx/log/emqx1:/opt/emqx/log
+
+  emqx2:
+    image: emqx:latest
+    container_name: emqx2
+    environment:
+    - "EMQX_NODE_NAME=emqx@node2.emqx.frix.tech"
+    - "EMQX_CLUSTER__DISCOVERY_STRATEGY=static"
+    - "EMQX_CLUSTER__STATIC__SEEDS=[emqx@node1.emqx.frix.tech, emqx@node2.emqx.frix.tech]"
+    healthcheck:
+      test: ["CMD", "/opt/emqx/bin/emqx", "ctl", "status"]
+      interval: 5s
+      timeout: 25s
+      retries: 5
+    networks:
+      emqx-bridge:
+        aliases:
+        - node2.emqx.frix.tech
+    volumes:
+      - /volume1/docker/emqx/data/emqx2:/opt/emqx/data
+      - /volume1/docker/emqx/log/emqx2:/opt/emqx/log
+
+networks:
+  emqx-bridge:
+    name: influxdb
+    external: true
