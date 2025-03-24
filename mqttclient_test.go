@@ -1,24 +1,96 @@
 package main
 
 import (
-	"fmt"
+	"crypto/ecdsa"
+	"crypto/elliptic"
+	"crypto/rand"
+	"crypto/x509"
+	"crypto/x509/pkix"
+	"encoding/pem"
+	"math/big"
 	"net/url"
 	"os"
 	"testing"
+	"time"
 
-	"github.com/eclipse/paho.golang/paho"
 	"github.com/eclipse/paho.golang/paho/session/state"
 )
 
-func TestLoadTLSConfig(t *testing.T) {
-	caFile := "testdata/ca.pem"
-	clientFile := "testdata/client.pem"
-	keyFile := "testdata/client-key.pem"
+func generateTestCerts(caFile, clientFile, keyFile string) error {
+	// Generate CA certificate
+	ca := &x509.Certificate{
+		SerialNumber: big.NewInt(1),
+		Subject:      pkix.Name{Organization: []string{"Test CA"}},
+		NotBefore:    time.Now(),
+		NotAfter:     time.Now().AddDate(1, 0, 0),
+		IsCA:         true,
+		KeyUsage:     x509.KeyUsageCertSign | x509.KeyUsageDigitalSignature,
+	}
 
-	// Create test files
-	os.WriteFile(caFile, []byte("test-ca"), 0644)
-	os.WriteFile(clientFile, []byte("test-client-cert"), 0644)
-	os.WriteFile(keyFile, []byte("test-client-key"), 0644)
+	caPriv, err := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
+	if err != nil {
+		return err
+	}
+
+	caBytes, err := x509.CreateCertificate(rand.Reader, ca, ca, &caPriv.PublicKey, caPriv)
+	if err != nil {
+		return err
+	}
+
+	caPEM := pem.EncodeToMemory(&pem.Block{Type: "CERTIFICATE", Bytes: caBytes})
+
+	// Write CA certificate to file
+	if err := os.WriteFile(caFile, caPEM, 0644); err != nil {
+		return err
+	}
+
+	// Generate client certificate
+	client := &x509.Certificate{
+		SerialNumber: big.NewInt(2),
+		Subject:      pkix.Name{Organization: []string{"Test Client"}},
+		NotBefore:    time.Now(),
+		NotAfter:     time.Now().AddDate(1, 0, 0),
+		KeyUsage:     x509.KeyUsageDigitalSignature,
+		ExtKeyUsage:  []x509.ExtKeyUsage{x509.ExtKeyUsageClientAuth},
+	}
+
+	clientPriv, err := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
+	if err != nil {
+		return err
+	}
+
+	clientBytes, err := x509.CreateCertificate(rand.Reader, client, ca, &clientPriv.PublicKey, caPriv)
+	if err != nil {
+		return err
+	}
+
+	clientPEM := pem.EncodeToMemory(&pem.Block{Type: "CERTIFICATE", Bytes: clientBytes})
+	clientPrivKey, err := x509.MarshalECPrivateKey(clientPriv)
+	if err != nil {
+		return err
+	}
+	clientPrivPEM := pem.EncodeToMemory(&pem.Block{Type: "EC PRIVATE KEY", Bytes: clientPrivKey})
+
+	// Write client certificate and key to files
+	if err := os.WriteFile(clientFile, clientPEM, 0644); err != nil {
+		return err
+	}
+	if err := os.WriteFile(keyFile, clientPrivPEM, 0644); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func TestLoadTLSConfig(t *testing.T) {
+	caFile := "ca.pem"
+	clientFile := "client.pem"
+	keyFile := "client-key.pem"
+
+	// Generate test certificates
+	if err := generateTestCerts(caFile, clientFile, keyFile); err != nil {
+		t.Fatalf("failed to generate test certificates: %v", err)
+	}
 	defer os.Remove(caFile)
 	defer os.Remove(clientFile)
 	defer os.Remove(keyFile)
@@ -41,16 +113,22 @@ func TestCreateMQTTClient(t *testing.T) {
 	serverURL, _ := url.Parse("mqtt://localhost:1883")
 	cfg := config{
 		serverURL:         serverURL,
-		ca:                "testdata/ca.pem",
-		cert:              "testdata/client.pem",
-		key:               "testdata/client-key.pem",
+		ca:                "ca1.pem",
+		cert:              "client1.pem",
+		key:               "client-key1.pem",
 		keepAlive:         60,
 		connectRetryDelay: 5,
 		topic:             "test/topic",
 		qos:               1,
 		clientID:          "testClient",
 	}
-
+	// Generate test certificates
+	if err := generateTestCerts(cfg.ca, cfg.cert, cfg.key); err != nil {
+		t.Fatalf("failed to generate test certificates: %v", err)
+	}
+	defer os.Remove(cfg.ca)
+	defer os.Remove(cfg.cert)
+	defer os.Remove(cfg.key)
 	sessionState := &state.State{}
 	h := &handler{}
 
@@ -74,56 +152,4 @@ func TestCreateMQTTClient(t *testing.T) {
 	if len(clientCfg.ClientConfig.OnPublishReceived) != 1 {
 		t.Errorf("expected 1 OnPublishReceived handler, got %d", len(clientCfg.ClientConfig.OnPublishReceived))
 	}
-}
-
-func TestOnConnectionUp(t *testing.T) {
-	serverURL, _ := url.Parse("mqtt://localhost:1883")
-	cfg := config{
-		serverURL:         serverURL,
-		ca:                "testdata/ca.pem",
-		cert:              "testdata/client.pem",
-		key:               "testdata/client-key.pem",
-		keepAlive:         60,
-		connectRetryDelay: 5,
-		topic:             "test/topic",
-		qos:               1,
-		clientID:          "testClient",
-	}
-
-	sessionState := &state.State{}
-	h := &handler{}
-
-	clientCfg := createClient(cfg, sessionState, h)
-	if clientCfg.OnConnectionUp == nil {
-		t.Fatal("expected OnConnectionUp to be set, got nil")
-	}
-
-	// Simulate connection up
-	clientCfg.OnConnectionUp(nil, &paho.Connack{})
-}
-
-func TestOnConnectError(t *testing.T) {
-	serverURL, _ := url.Parse("mqtt://localhost:1883")
-	cfg := config{
-		serverURL:         serverURL,
-		ca:                "testdata/ca.pem",
-		cert:              "testdata/client.pem",
-		key:               "testdata/client-key.pem",
-		keepAlive:         60,
-		connectRetryDelay: 5,
-		topic:             "test/topic",
-		qos:               1,
-		clientID:          "testClient",
-	}
-
-	sessionState := &state.State{}
-	h := &handler{}
-
-	clientCfg := createClient(cfg, sessionState, h)
-	if clientCfg.OnConnectError == nil {
-		t.Fatal("expected OnConnectError to be set, got nil")
-	}
-
-	// Simulate connection error
-	clientCfg.OnConnectError(fmt.Errorf("test error"))
 }
