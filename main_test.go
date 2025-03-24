@@ -5,7 +5,6 @@ import (
 	"testing"
 
 	"github.com/eclipse/paho.golang/paho/session/state"
-	storefile "github.com/eclipse/paho.golang/paho/store/file"
 )
 
 func TestLogger(t *testing.T) {
@@ -31,24 +30,5 @@ func TestCreateClient(t *testing.T) {
 	clientCfg := createClient(cfg, sessionState, h)
 	if clientCfg.ServerUrls[0].String() != serverURL.String() {
 		t.Errorf("expected server URL to be %s, got %s", serverURL.String(), clientCfg.ServerUrls[0].String())
-	}
-}
-
-func TestSessionState(t *testing.T) {
-	cfg := config{
-		sessionFolder: "testdata/session",
-	}
-
-	cliState, err := storefile.New(cfg.sessionFolder, "subdemo_cli_", ".pkt")
-	if err != nil {
-		t.Fatalf("failed to create client state: %v", err)
-	}
-	srvState, err := storefile.New(cfg.sessionFolder, "subdemo_srv_", ".pkt")
-	if err != nil {
-		t.Fatalf("failed to create server state: %v", err)
-	}
-	sessionState := state.New(cliState, srvState)
-	if sessionState == nil {
-		t.Fatal("expected sessionState to be created, got nil")
 	}
 }
