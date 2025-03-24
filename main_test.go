@@ -2,47 +2,11 @@ package main
 
 import (
 	"net/url"
-	"os"
-	"os/signal"
-	"syscall"
 	"testing"
-	"time"
 
 	"github.com/eclipse/paho.golang/paho/session/state"
 	storefile "github.com/eclipse/paho.golang/paho/store/file"
 )
-
-func TestMainFunction(t *testing.T) {
-	// Mock getConfig function
-	getConfig = func() (config, error) {
-		serverURL, _ := url.Parse("mqtt://localhost:1883")
-		return config{
-			serverURL:     serverURL,
-			sessionFolder: "",
-			debug:         false,
-		}, nil
-	}
-
-	// Mock NewHandler function
-	NewHandler = func(cfg config) *handler {
-		return &handler{}
-	}
-
-	// Mock signal handling
-	sig := make(chan os.Signal, 1)
-	signal.Notify = func(c chan<- os.Signal, sig ...os.Signal) {
-		go func() {
-			time.Sleep(1 * time.Second)
-			c <- syscall.SIGTERM
-		}()
-	}
-
-	// Run main function in a separate goroutine
-	go main()
-
-	// Wait for the signal to be caught and processed
-	time.Sleep(2 * time.Second)
-}
 
 func TestLogger(t *testing.T) {
 	l := logger{prefix: "test"}

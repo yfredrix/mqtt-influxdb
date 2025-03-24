@@ -37,7 +37,7 @@ func TestLoadTLSConfig(t *testing.T) {
 	}
 }
 
-func TestCreateClient(t *testing.T) {
+func TestCreateMQTTClient(t *testing.T) {
 	serverURL, _ := url.Parse("mqtt://localhost:1883")
 	cfg := config{
 		serverURL:         serverURL,

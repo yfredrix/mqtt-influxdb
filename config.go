@@ -14,7 +14,7 @@ import (
 // Configuration will be pulled from the environment using the following keys
 const (
 	envServerURL = "url"      // server URL
-	envClientID  = "clientId" // client id to connect with
+	envClientID  = "clientID" // client id to connect with
 	envTopic     = "topic"    // topic to publish on
 	envQos       = "qos"      // qos to utilise when publishing
 
