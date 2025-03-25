@@ -1,0 +1,11 @@
+# Start with the official Golang image
+FROM golang:1.23-alpine
+
+# Set the Current Working Directory inside the container
+WORKDIR /app
+
+# Copy go binary to /app
+COPY mqtt-influxdb .
+
+# CMD
+CMD ["./mqtt-influxdb"]
