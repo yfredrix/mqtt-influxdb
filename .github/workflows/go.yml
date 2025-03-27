@@ -13,8 +13,19 @@ env:
   REGISTRY: ghcr.io
   # github.repository as <account>/<repo>
   IMAGE_NAME: ${{ github.repository }}
+  GOVERSION: 1.24
   
 jobs:
+  lint:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions/setup-go@v3
+        with:
+          go-version: ${{ env.GOVERSION }}
+      - uses: golangci/golangci-lint-action@v3
   build:
     permissions:
       contents: write
@@ -26,7 +37,7 @@ jobs:
     - name: Set up Go
       uses: actions/setup-go@v4
       with:
-        go-version: '1.24'
+        go-version: ${{ env.GOVERSION }}
     - name: Test
       run: go test -v ./...
     - name: Build
@@ -38,7 +49,12 @@ jobs:
         name: gobuild # optional, default is artifact
         # A file, directory or wildcard pattern that describes what to upload
         path: ./mqtt-influxdb
-
+    - uses: go-semantic-release/action@v1
+      with:
+        hooks: goreleaser
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        
   release:
     needs: build
     runs-on: ubuntu-latest
