@@ -53,7 +53,7 @@ jobs:
   release:
     needs: build
     runs-on: ubuntu-latest
-    if: ${{ (github.event_name != 'pull_request') &&  (job.build.steps.semantic.outputs.new_release_published == 'true') }}
+    if: ${{ (github.event_name != 'pull_request') &&  (jobs.build.steps.semantic.outputs.new_release_published == 'true') }}
     permissions:
       contents: read
       packages: write
@@ -66,7 +66,7 @@ jobs:
         uses: actions/checkout@v4
       - uses: robinraju/release-downloader@v1
         with:
-          tag: ${{ job.build.steps.semantic.outputs.new_release_version }}
+          tag: ${{ jobs.build.steps.semantic.outputs.new_release_version }}
           
       # Install the cosign tool except on PR
       # https://github.com/sigstore/cosign-installer
