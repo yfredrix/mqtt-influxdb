@@ -91,9 +91,9 @@ func TestLoadTLSConfig(t *testing.T) {
 	if err := generateTestCerts(caFile, clientFile, keyFile); err != nil {
 		t.Fatalf("failed to generate test certificates: %v", err)
 	}
-	defer os.Remove(caFile)
-	defer os.Remove(clientFile)
-	defer os.Remove(keyFile)
+	defer os.Remove(caFile)     //ignore:nolint:errcheck
+	defer os.Remove(clientFile) //ignore:nolint:errcheck
+	defer os.Remove(keyFile)    //ignore:nolint:errcheck
 
 	tlsConfig := loadTLSConfig(caFile, clientFile, keyFile)
 	if tlsConfig == nil {
@@ -126,9 +126,9 @@ func TestCreateMQTTClient(t *testing.T) {
 	if err := generateTestCerts(cfg.ca, cfg.cert, cfg.key); err != nil {
 		t.Fatalf("failed to generate test certificates: %v", err)
 	}
-	defer os.Remove(cfg.ca)
-	defer os.Remove(cfg.cert)
-	defer os.Remove(cfg.key)
+	defer os.Remove(cfg.ca)   //ignore:nolint:errcheck
+	defer os.Remove(cfg.cert) //ignore:nolint:errcheck
+	defer os.Remove(cfg.key)  //ignore:nolint:errcheck
 	sessionState := &state.State{}
 	h := &handler{}
 
@@ -145,11 +145,11 @@ func TestCreateMQTTClient(t *testing.T) {
 		t.Errorf("expected ReconnectBackoff to be set, got nil")
 	}
 
-	if clientCfg.ClientConfig.ClientID != cfg.clientID {
-		t.Errorf("expected clientID to be %s, got %s", cfg.clientID, clientCfg.ClientConfig.ClientID)
+	if clientCfg.ClientConfig.ClientID != cfg.clientID { //ignore:nolint:staticcheck
+		t.Errorf("expected clientID to be %s, got %s", cfg.clientID, clientCfg.ClientConfig.ClientID) //ignore:nolint:staticcheck
 	}
 
-	if len(clientCfg.ClientConfig.OnPublishReceived) != 1 {
+	if len(clientCfg.ClientConfig.OnPublishReceived) != 1 { //ignore:nolint:staticcheck
 		t.Errorf("expected 1 OnPublishReceived handler, got %d", len(clientCfg.ClientConfig.OnPublishReceived))
 	}
 }

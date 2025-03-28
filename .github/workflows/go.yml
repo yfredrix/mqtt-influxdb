@@ -30,7 +30,11 @@ jobs:
     permissions:
       contents: write
       actions: write
-
+    
+    outputs:
+      new_release_published: ${{ steps.semantic.outputs.new_release_published }}
+      new_release_version: ${{ steps.semantic.outputs.new_release_version }}
+    
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v4
@@ -43,6 +47,7 @@ jobs:
     - name: Build
       run: go build -o mqtt-influxdb
     - name: semantic
+      id: semantic
       uses: go-semantic-release/action@v1
       if: github.event_name != 'pull_request'
       with:
@@ -53,7 +58,7 @@ jobs:
   release:
     needs: build
     runs-on: ubuntu-latest
-    if: ${{ (github.event_name != 'pull_request') &&  (needs.build.steps.semantic.outputs.new_release_published == 'true') }}
+    if: ${{ (github.event_name != 'pull_request') &&  (needs.build.outputs.new_release_published == 'true') }}
     permissions:
       contents: read
       packages: write
@@ -66,7 +71,10 @@ jobs:
         uses: actions/checkout@v4
       - uses: robinraju/release-downloader@v1
         with:
-          tag: ${{ needs.build.steps.semantic.outputs.new_release_version }}
+          tag: ${{ needs.build.outputs.new_release_version }}     
+          zipBall: false
+          fileName: '*linux_amd64*'
+          out-file-path: ./mqtt-influxdb
           
       # Install the cosign tool except on PR
       # https://github.com/sigstore/cosign-installer

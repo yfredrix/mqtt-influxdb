@@ -7,9 +7,7 @@ import (
 )
 
 func influxClient(cfg config) influxdb2.Client {
-	var clientOptions *influxdb2.Options
-
-	clientOptions = influxdb2.DefaultOptions()
+	var clientOptions *influxdb2.Options = influxdb2.DefaultOptions()
 
 	clientOptions.SetApplicationName("p1DataWriterGo")
 

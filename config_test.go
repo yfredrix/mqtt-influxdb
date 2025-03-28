@@ -7,11 +7,17 @@ import (
 )
 
 func setEnv(key, value string) {
-	os.Setenv(key, value)
+	err := os.Setenv(key, value)
+	if err != nil {
+		panic(err)
+	}
 }
 
 func unsetEnv(key string) {
-	os.Unsetenv(key)
+	err := os.Unsetenv(key)
+	if err != nil {
+		panic(err)
+	}
 }
 
 func TestGetConfig(t *testing.T) {

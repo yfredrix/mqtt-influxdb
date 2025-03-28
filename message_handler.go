@@ -34,7 +34,8 @@ func (o *handler) Close() {
 func splitTopic(topic string) (string, string, error) {
 	topicSplit := strings.Split(topic, "/")
 	if len(topicSplit) != 2 {
-		return "", "", fmt.Errorf("Topic is not in the correct format: %s", topic)
+		err := fmt.Errorf("Topic is not in the correct format: %s", topic)
+		return "", "", err
 	}
 	mainTopic := topicSplit[0]
 	subTopic := topicSplit[1]
