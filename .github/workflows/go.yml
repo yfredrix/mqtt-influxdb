@@ -32,8 +32,7 @@ jobs:
       actions: write
     
     outputs:
-      new_release_published: ${{ steps.semantic.outputs.new_release_published }}
-      new_release_version: ${{ steps.semantic.outputs.new_release_version }}
+      new_release_version: ${{ steps.semantic.outputs.version }}
     
     runs-on: ubuntu-latest
     steps:
@@ -44,8 +43,6 @@ jobs:
         go-version: ${{ env.GOVERSION }}
     - name: Test
       run: go test -v ./...
-    - name: Build
-      run: go build -o mqtt-influxdb
     - name: semantic
       id: semantic
       uses: go-semantic-release/action@v1
@@ -58,7 +55,7 @@ jobs:
   release:
     needs: build
     runs-on: ubuntu-latest
-    if: ${{ (github.event_name != 'pull_request') &&  (needs.build.outputs.new_release_published == 'true') }}
+    if: ${{ (github.event_name != 'pull_request') &&  (needs.build.outputs.new_release_version != '') }}
     permissions:
       contents: read
       packages: write
