@@ -74,7 +74,9 @@ jobs:
       - name: Download a Build Artifact
         uses: actions/download-artifact@v4.2.1
 
-      - run: mv dist/mqtt-influxdb_${{needs.build.outputs.new_release_version}}_linux_amd64.tar.gz ./mqtt-influxdb
+      - run: |
+            tar -xvzf mqtt-influxdb_${{needs.build.outputs.new_release_version}}_linux_amd64.tar.gz
+            mv mqtt-influxdb_${{needs.build.outputs.new_release_version}}_linux_amd64 mqtt-influxdb
      
       # Install the cosign tool except on PR
       # https://github.com/sigstore/cosign-installer
