@@ -51,6 +51,11 @@ jobs:
         hooks: goreleaser
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    - name: Upload a Build Artifact
+      uses: actions/upload-artifact@v4.6.2
+      if: steps.semantic.outputs.version != ''
+      with:
+        path: dist/mqtt-influxdb_${{steps.semantic.outputs.version}}_linux_amd64.tar.gz
         
   release:
     needs: build
@@ -66,17 +71,14 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
-      - uses: robinraju/release-downloader@v1
-        with:
-          tag: ${{ needs.build.outputs.new_release_version }}     
-          zipBall: false
-          fileName: '*linux_amd64*'
-          out-file-path: ./mqtt-influxdb
-          
+      - name: Download a Build Artifact
+        uses: actions/download-artifact@v4.2.1
+
+      - run: mv dist/mqtt-influxdb_${{needs.build.outputs.new_release_version}}_linux_amd64.tar.gz ./mqtt-influxdb
+     
       # Install the cosign tool except on PR
       # https://github.com/sigstore/cosign-installer
       - name: Install cosign
-        if: github.event_name != 'pull_request'
         uses: sigstore/cosign-installer@59acb6260d9c0ba8f4a2f9d9b48431a222b68e20 #v3.5.0
         with:
           cosign-release: 'v2.2.4'
@@ -90,7 +92,6 @@ jobs:
       # Login against a Docker registry except on PR
       # https://github.com/docker/login-action
       - name: Log into registry ${{ env.REGISTRY }}
-        if: github.event_name != 'pull_request'
         uses: docker/login-action@343f7c4344506bcbf9b4de18042ae17996df046d # v3.0.0
         with:
           registry: ${{ env.REGISTRY }}
@@ -125,7 +126,6 @@ jobs:
       # transparency data even for private images, pass --force to cosign below.
       # https://github.com/sigstore/cosign
       - name: Sign the published Docker image
-        if: ${{ github.event_name != 'pull_request' }}
         env:
           # https://docs.github.com/en/actions/security-guides/security-hardening-for-github-actions#using-an-intermediate-environment-variable
           TAGS: ${{ steps.meta.outputs.tags }}
