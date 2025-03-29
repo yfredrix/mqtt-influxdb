@@ -18,7 +18,6 @@ env:
 jobs:
   lint:
     runs-on: ubuntu-latest
-    if: false
     permissions:
       contents: read
       pull-requests: read
@@ -29,6 +28,8 @@ jobs:
           go-version: ${{ env.GOVERSION }}
       - uses: golangci/golangci-lint-action@v7
   build:
+    runs-on: ubuntu-latest
+    needs: lint
     permissions:
       contents: write
       actions: write
@@ -36,7 +37,6 @@ jobs:
     outputs:
       new_release_version: ${{ steps.semantic.outputs.version }}
     
-    runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v4
     - name: Set up Go
@@ -75,11 +75,7 @@ jobs:
         uses: actions/checkout@v4
       - name: Download a Build Artifact
         uses: actions/download-artifact@v4.2.1
-      - run: |
-             ls -a
-             tar -xvzf artifact/mqtt-influxdb_${{needs.build.outputs.new_release_version}}_linux_amd64.tar.gz
-             ls -a artifact
-      - run: mv artifact/mqtt-influxdb mqtt-influxdb
+        
       # Install the cosign tool except on PR
       # https://github.com/sigstore/cosign-installer
       - name: Install cosign
