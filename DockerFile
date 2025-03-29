@@ -1,5 +1,4 @@
-# Start with the official Golang image
-FROM golang:1.23-alpine
+FROM debian:bookworm
 
 # Set the Current Working Directory inside the container
 WORKDIR /app

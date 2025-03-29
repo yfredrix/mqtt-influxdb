@@ -75,6 +75,7 @@ jobs:
         uses: actions/download-artifact@v4.2.1
 
       - run: |
+            ls -a
             tar -xvzf mqtt-influxdb_${{needs.build.outputs.new_release_version}}_linux_amd64.tar.gz
             mv mqtt-influxdb_${{needs.build.outputs.new_release_version}}_linux_amd64 mqtt-influxdb
      
