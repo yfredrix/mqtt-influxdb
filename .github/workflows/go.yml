@@ -19,7 +19,8 @@ jobs:
   lint:
     runs-on: ubuntu-latest
     permissions:
-      contents: write
+      contents: read
+      pull-requests: read
     steps:
       - uses: actions/checkout@v3
       - uses: actions/setup-go@v3
@@ -77,7 +78,7 @@ jobs:
       - run: |
             ls -a artifact
             tar -xvzf artifact/mqtt-influxdb_${{needs.build.outputs.new_release_version}}_linux_amd64.tar.gz
-            mv artifact/mqtt-influxdb_${{needs.build.outputs.new_release_version}}_linux_amd64 ../mqtt-influxdb
+            mv artifact/mqtt-influxdb mqtt-influxdb
      
       # Install the cosign tool except on PR
       # https://github.com/sigstore/cosign-installer
