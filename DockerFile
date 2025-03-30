@@ -26,7 +26,7 @@ ENV INFLUXDB_TOKEN=token
 ENV INFLUXDB_ORG=org
 # MQTT BROKER
 ENV MQTTBROKERURL=ssl://localhost:8883
-ENV CLIENT_ID=client_id
+ENV CLIENTID=client_id
 ENV TOPIC=p1/#
 ENV QOS=0
 ENV CAFILE=/home/nonroot/app/certs/ca.crt

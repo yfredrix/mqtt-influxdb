@@ -22,9 +22,9 @@ const (
 	clientFile = "CERTFILE" // path to the client certificate
 	keyFile    = "KEYFILE"  // path to the client key
 
-	influxURL   = "INFLUXURL"   // URL of the influx server
-	influxToken = "INFLUXTOKEN" // token to use when connecting to influx
-	influxOrg   = "INFLUXORG"   // organization to use when connecting to influx
+	influxURL   = "INFLUXDB_URL"   // URL of the influx server
+	influxToken = "INFLUXDB_TOKEN" // token to use when connecting to influx
+	influxOrg   = "INFLUXDB_ORG"   // organization to use when connecting to influx
 
 	envKeepAlive         = "KEEPALIVE"     // seconds between keepalive packets
 	envConnectRetryDelay = "RETRYINTERVAL" // milliseconds to delay between connection attempts
@@ -105,7 +105,7 @@ func getConfig() (config, error) {
 
 	cfg.sessionFolder = os.Getenv(envSessionFolder)
 
-	if cfg.debug, err = booleanFromEnv(envDebug); err != nil {
+	if cfg.debug, err = booleanFromEnvWithDefault(envDebug, false); err != nil {
 		return config{}, err
 	}
 	// Influx configuration
@@ -174,4 +174,15 @@ func booleanFromEnv(key string) (bool, error) {
 	default:
 		return false, fmt.Errorf("environmental variable %s be a valid boolean option (is %s)", key, s)
 	}
+}
+
+func booleanFromEnvWithDefault(key string, defaultValue bool) (bool, error) {
+	output, err := booleanFromEnv(key)
+	if err != nil {
+		if strings.Contains(err.Error(), "must not be blank") {
+			return defaultValue, nil
+		}
+		return false, err
+	}
+	return output, nil
 }
