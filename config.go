@@ -13,25 +13,24 @@ import (
 
 // Configuration will be pulled from the environment using the following keys
 const (
-	envServerURL = "url"      // server URL
-	envClientID  = "clientID" // client id to connect with
-	envTopic     = "topic"    // topic to publish on
-	envQos       = "qos"      // qos to utilise when publishing
+	envServerURL = "MQTTBROKERURL" // server URL
+	envClientID  = "CLIENTID"      // client id to connect with
+	envTopic     = "TOPIC"         // topic to publish on
+	envQos       = "QOS"           // qos to utilise when publishing
 
-	caFile     = "cafile"
-	clientFile = "certfile"
-	keyFile    = "keyfile"
+	caFile     = "CAFILE"   // path to the CA file
+	clientFile = "CERTFILE" // path to the client certificate
+	keyFile    = "KEYFILE"  // path to the client key
 
-	influxURL   = "influxURL"
-	influxToken = "influxToken"
-	influxOrg   = "influxOrg"
+	influxURL   = "INFLUXURL"   // URL of the influx server
+	influxToken = "INFLUXTOKEN" // token to use when connecting to influx
+	influxOrg   = "INFLUXORG"   // organization to use when connecting to influx
 
-	envKeepAlive         = "keepAlive"     // seconds between keepalive packets
-	envConnectRetryDelay = "retryInterval" // milliseconds to delay between connection attempts
+	envKeepAlive         = "KEEPALIVE"     // seconds between keepalive packets
+	envConnectRetryDelay = "RETRYINTERVAL" // milliseconds to delay between connection attempts
 
-	envSessionFolder = "sessionFolder" // folder used to persist the session state (if empty state will be held in RAM)
-
-	envDebug = "debug" // if "true" then the libraries will be instructed to print debug info
+	envSessionFolder = "SESSIONFOLDER" // folder used to persist the session state (if empty state will be held in RAM)
+	envDebug         = "DEBUG"         // if "true" then the libraries will be instructed to print debug info
 )
 
 // config holds the configuration

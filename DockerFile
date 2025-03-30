@@ -8,6 +8,7 @@ RUN update-ca-certificates
 RUN addgroup --gid $GID nonroot && \
     adduser --uid $UID --gid $GID --disabled-password --gecos "" nonroot
 
+RUN rm -rf /var/lib/apt/lists/*
 # Set the Current Working Directory inside the container
 WORKDIR /home/nonroot/app
 
@@ -17,5 +18,23 @@ COPY --chown=nonroot:nonroot mqtt-influxdb /home/nonroot/app
 # Allow binary to execute
 RUN chmod -R 755 mqtt-influxdb
 USER nonroot
+
+# Required ENV Variables
+# InfluxDB
+ENV INFLUXDB_URL=http://localhost:8086
+ENV INFLUXDB_TOKEN=token
+ENV INFLUXDB_ORG=org
+# MQTT BROKER
+ENV MQTTBROKERURL=ssl://localhost:8883
+ENV CLIENT_ID=client_id
+ENV TOPIC=p1/#
+ENV QOS=0
+ENV CAFILE=/home/nonroot/app/certs/ca.crt
+ENV CERTFILE=/home/nonroot/app/certs/client.crt
+ENV KEYFILE=/home/nonroot/app/certs/client.key
+ENV KEEPALIVE=30
+ENV RETRYINTERVAL=50
+ENV SESSIONFOLDER=/home/nonroot/app/sessions
+
 # CMD
 CMD ["./mqtt-influxdb"]

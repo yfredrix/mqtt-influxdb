@@ -30,11 +30,11 @@ func main() {
 	if len(cfg.sessionFolder) == 0 {
 		sessionState = state.NewInMemory()
 	} else {
-		cliState, err := storefile.New(cfg.sessionFolder, "subdemo_cli_", ".pkt")
+		cliState, err := storefile.New(cfg.sessionFolder, "client_", ".pkt")
 		if err != nil {
 			panic(err)
 		}
-		srvState, err := storefile.New(cfg.sessionFolder, "subdemo_srv_", ".pkt")
+		srvState, err := storefile.New(cfg.sessionFolder, "server_", ".pkt")
 		if err != nil {
 			panic(err)
 		}
