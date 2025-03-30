@@ -77,15 +77,15 @@ jobs:
         id: download-artifact
         uses: actions/download-artifact@v4.2.1
       - name: Debug Files
-        run: ls -la ${{steps.download-artifact.outputs.download-path}}
+        run: ls -la ${{steps.download-artifact.outputs.download-path}}/artifact
       - name: Extract Build Artifact
-        run: tar -xzf ${{steps.download-artifact.outputs.download-path}}/mqtt-influxdb_${{needs.build.outputs.new_release_version}}_linux_amd64.tar.gz
+        run: tar -xzf ${{steps.download-artifact.outputs.download-path}}/artifact/mqtt-influxdb_${{needs.build.outputs.new_release_version}}_linux_amd64.tar.gz
       - name: Debug Files
         run: |
-          ls -la ${{steps.download-artifact.outputs.download-path}}/
-          ls -la ${{steps.download-artifact.outputs.download-path}}/mqtt-influxdb_${{needs.build.outputs.new_release_version}}_linux_amd64
+          ls -la ${{steps.download-artifact.outputs.download-path}}/artifact
+          ls -la ${{steps.download-artifact.outputs.download-path}}/artifact/mqtt-influxdb_${{needs.build.outputs.new_release_version}}_linux_amd64
       - name: Move to root
-        run: mv ${{steps.download-artifact.outputs.download-path}}/mqtt-influxdb_${{needs.build.outputs.new_release_version}}_linux_amd64/mqtt-influxdb ./mqtt-influxdb
+        run: mv ${{steps.download-artifact.outputs.download-path}}/artifact/mqtt-influxdb_${{needs.build.outputs.new_release_version}}_linux_amd64/mqtt-influxdb ./mqtt-influxdb
       # Install the cosign tool except on PR
       # https://github.com/sigstore/cosign-installer
       - name: Install cosign
