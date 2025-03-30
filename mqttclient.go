@@ -23,8 +23,6 @@ func loadTLSConfig(caFile string, clientFile string, keyFile string) (*tls.Confi
 		rootCAs, _ := x509.SystemCertPool()
 		if rootCAs == nil {
 			rootCAs = x509.NewCertPool()
-			err := fmt.Errorf("missing system cert pool, using empty pool")
-			return nil, err
 		}
 		ca, err := os.ReadFile(caFile)
 		if err != nil {
