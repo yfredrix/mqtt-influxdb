@@ -1,13 +1,21 @@
 FROM debian:bookworm
+ARG UID
+ARG GID
+
+RUN apt-get update && apt-get install -y ca-certificates
+RUN update-ca-certificates
+
+RUN addgroup --gid $GID nonroot && \
+    adduser --uid $UID --gid $GID --disabled-password --gecos "" nonroot
 
 # Set the Current Working Directory inside the container
-WORKDIR /app
+WORKDIR /home/nonroot/app
 
 # Copy go binary to /app
-COPY mqtt-influxdb .
+COPY --chown=nonroot:nonroot mqtt-influxdb /home/nonroot/app
 
 # Allow binary to execute
-RUN chmod +x mqtt-influxdb
-
+RUN chmod -R 755 mqtt-influxdb
+USER nonroot
 # CMD
 CMD ["./mqtt-influxdb"]

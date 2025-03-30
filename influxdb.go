@@ -1,15 +1,32 @@
 package main
 
 import (
+	"crypto/tls"
+	"crypto/x509"
+	"fmt"
 	"time"
 
 	influxdb2 "github.com/influxdata/influxdb-client-go/v2"
 )
 
+func creatTLSConfigInflux() *tls.Config {
+	tlsConfig := &tls.Config{}
+	tlsConfig.InsecureSkipVerify = false
+	// Load the CA certificate
+	caCert, err := x509.SystemCertPool()
+	if err != nil {
+		fmt.Printf("Failed to load system cert pool: %v\n", err)
+		panic(err)
+	}
+	tlsConfig.RootCAs = caCert
+	return tlsConfig
+}
+
 func influxClient(cfg config) influxdb2.Client {
 	var clientOptions = influxdb2.DefaultOptions()
 
 	clientOptions.SetApplicationName("p1DataWriterGo")
+	clientOptions.SetTLSConfig(creatTLSConfigInflux())
 
 	client := influxdb2.NewClientWithOptions(cfg.influxURL, cfg.influxToken, clientOptions)
 	return client
