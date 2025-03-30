@@ -14,35 +14,48 @@ import (
 	"github.com/eclipse/paho.golang/paho/session/state"
 )
 
-func loadTLSConfig(caFile string, clientFile string, keyFile string) *tls.Config {
+func loadTLSConfig(caFile string, clientFile string, keyFile string) (*tls.Config, error) {
 	// load tls config
-	var tlsConfig tls.Config
+	tlsConfig := &tls.Config{}
 	tlsConfig.InsecureSkipVerify = false
 	if caFile != "" {
-		certpool := x509.NewCertPool()
+		// Get the SystemCertPool, continue with an empty pool on error
+		rootCAs, _ := x509.SystemCertPool()
+		if rootCAs == nil {
+			rootCAs = x509.NewCertPool()
+			err := fmt.Errorf("missing system cert pool, using empty pool")
+			return nil, err
+		}
 		ca, err := os.ReadFile(caFile)
 		if err != nil {
 			log.Fatal(err.Error())
+		}
+		// Append our cert to the system pool
+		if ok := rootCAs.AppendCertsFromPEM(ca); !ok {
+			log.Println("No certs appended, using system certs only")
 		}
 
 		// Import client certificate/key pair
 		cert, err := tls.LoadX509KeyPair(clientFile, keyFile)
 		if err != nil {
-			panic(err)
+			return nil, err
 		}
-		certpool.AppendCertsFromPEM(ca)
-		tlsConfig.RootCAs = certpool
+		tlsConfig.RootCAs = rootCAs
 		tlsConfig.ClientAuth = tls.RequireAndVerifyClientCert
 		tlsConfig.Certificates = []tls.Certificate{cert}
 	}
-	return &tlsConfig
+	return tlsConfig, nil
 }
 
 func createClient(cfg config, sessionState *state.State, h *handler) autopaho.ClientConfig {
+	TlsCfg, err := loadTLSConfig(cfg.ca, cfg.cert, cfg.key)
+	if err != nil {
+		panic(err)
+	}
 	// Create a handler that will deal with incoming messages
 	cliCfg := autopaho.ClientConfig{
 		ServerUrls:                    []*url.URL{cfg.serverURL},
-		TlsCfg:                        loadTLSConfig(cfg.ca, cfg.cert, cfg.key),
+		TlsCfg:                        TlsCfg,
 		KeepAlive:                     cfg.keepAlive,
 		CleanStartOnInitialConnection: false, // the default
 		SessionExpiryInterval:         60,    // Session remains live 60 seconds after disconnect

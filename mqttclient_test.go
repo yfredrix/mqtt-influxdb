@@ -95,7 +95,10 @@ func TestLoadTLSConfig(t *testing.T) {
 	defer os.Remove(clientFile) //nolint:errcheck
 	defer os.Remove(keyFile)    //nolint:errcheck
 
-	tlsConfig := loadTLSConfig(caFile, clientFile, keyFile)
+	tlsConfig, err := loadTLSConfig(caFile, clientFile, keyFile)
+	if err != nil {
+		t.Fatalf("failed to load TLS config: %v", err)
+	}
 	if tlsConfig == nil {
 		t.Fatal("expected tlsConfig to be created, got nil")
 	}
