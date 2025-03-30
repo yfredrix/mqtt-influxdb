@@ -74,8 +74,18 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
       - name: Download a Build Artifact
+        id: download-artifact
         uses: actions/download-artifact@v4.2.1
-        
+      - name: Debug Files
+        run: ls -la ${{steps.download-artifact.outputs.download-path}}
+      - name: Extract Build Artifact
+        run: tar -xzf ${{steps.download-artifact.outputs.download-path}}/mqtt-influxdb_${{needs.build.outputs.new_release_version}}_linux_amd64.tar.gz
+      - name: Debug Files
+        run: |
+          ls -la ${{steps.download-artifact.outputs.download-path}}/
+          ls -la ${{steps.download-artifact.outputs.download-path}}/mqtt-influxdb_${{needs.build.outputs.new_release_version}}_linux_amd64
+      - name: Move to root
+        run: mv ${{steps.download-artifact.outputs.download-path}}/mqtt-influxdb_${{needs.build.outputs.new_release_version}}_linux_amd64/mqtt-influxdb ./mqtt-influxdb
       # Install the cosign tool except on PR
       # https://github.com/sigstore/cosign-installer
       - name: Install cosign
