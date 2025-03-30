@@ -83,9 +83,7 @@ jobs:
       - name: Debug Files
         run: |
           ls -la ${{steps.download-artifact.outputs.download-path}}/artifact
-          ls -la ${{steps.download-artifact.outputs.download-path}}/artifact/mqtt-influxdb_${{needs.build.outputs.new_release_version}}_linux_amd64
-      - name: Move to root
-        run: mv ${{steps.download-artifact.outputs.download-path}}/artifact/mqtt-influxdb_${{needs.build.outputs.new_release_version}}_linux_amd64/mqtt-influxdb ./mqtt-influxdb
+          ls -la ${{steps.download-artifact.outputs.download-path}}
       # Install the cosign tool except on PR
       # https://github.com/sigstore/cosign-installer
       - name: Install cosign
