@@ -119,7 +119,7 @@ func TestIntFromEnv(t *testing.T) {
 	setEnv("TEST_INT", "123")
 	defer unsetEnv("TEST_INT")
 
-	value, err := intFromEnv("TEST_INT")
+	value, err := intFromEnv("TEST_INT", 16)
 	if err != nil {
 		t.Fatalf("expected no error, got %v", err)
 	}
@@ -151,5 +151,41 @@ func TestBooleanFromEnv(t *testing.T) {
 	}
 	if value != true {
 		t.Errorf("expected true, got %v", value)
+	}
+}
+func TestIntFromEnvInvalidValue(t *testing.T) {
+	setEnv("TEST_INT", "not_a_number")
+	defer unsetEnv("TEST_INT")
+
+	_, err := intFromEnv("TEST_INT", 16)
+	if err == nil {
+		t.Fatal("expected error for invalid integer value")
+	}
+}
+
+func TestIntFromEnvMissing(t *testing.T) {
+	_, err := intFromEnv("NONEXISTENT_VAR", 16)
+	if err == nil {
+		t.Fatal("expected error for missing environmental variable")
+	}
+}
+
+func TestIntFromEnvEmpty(t *testing.T) {
+	setEnv("TEST_INT", "")
+	defer unsetEnv("TEST_INT")
+
+	_, err := intFromEnv("TEST_INT", 16)
+	if err == nil {
+		t.Fatal("expected error for empty environmental variable")
+	}
+}
+
+func TestIntFromEnvNegative(t *testing.T) {
+	setEnv("TEST_INT", "-123")
+	defer unsetEnv("TEST_INT")
+
+	_, err := intFromEnv("TEST_INT", 16)
+	if err == nil {
+		t.Fatal("expected error for negative integer")
 	}
 }

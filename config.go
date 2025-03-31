@@ -87,13 +87,13 @@ func getConfig() (config, error) {
 		return config{}, err
 	}
 
-	iQos, err := intFromEnv(envQos)
+	iQos, err := intFromEnv(envQos, 8)
 	if err != nil {
 		return config{}, err
 	}
 	cfg.qos = byte(iQos)
 
-	iKa, err := intFromEnv(envKeepAlive)
+	iKa, err := intFromEnv(envKeepAlive, 16)
 	if err != nil {
 		return config{}, err
 	}
@@ -135,12 +135,12 @@ func stringFromEnv(key string) (string, error) {
 }
 
 // intFromEnv - Retrieves an integer from the environment (must be present and valid)
-func intFromEnv(key string) (int, error) {
+func intFromEnv(key string, maxsize int) (uint64, error) {
 	s := os.Getenv(key)
 	if len(s) == 0 {
 		return 0, fmt.Errorf("environmental variable %s must not be blank", key)
 	}
-	i, err := strconv.Atoi(s)
+	i, err := strconv.ParseUint(s, 10, maxsize)
 	if err != nil {
 		return 0, fmt.Errorf("environmental variable %s must be an integer", key)
 	}
