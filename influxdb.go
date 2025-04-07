@@ -4,7 +4,6 @@ import (
 	"crypto/tls"
 	"crypto/x509"
 	"fmt"
-	"time"
 
 	influxdb2 "github.com/influxdata/influxdb-client-go/v2"
 )
@@ -34,7 +33,7 @@ func influxClient(cfg config) influxdb2.Client {
 
 func writePoint(topic string, payload Message, client influxdb2.Client, organization string) {
 	writeAPI := client.WriteAPI(organization, topic)
-	p := influxdb2.NewPoint(payload.Measurement, payload.Tags, payload.Fields, time.Now())
+	p := influxdb2.NewPoint(payload.Measurement, payload.Tags, payload.Fields, payload.Time)
 	writeAPI.WritePoint(p)
 	writeAPI.Flush()
 }
