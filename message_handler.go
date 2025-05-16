@@ -43,7 +43,7 @@ func splitTopic(topic string) (string, string, error) {
 }
 
 type sensorMessage struct {
-	Unit      string    `json:"Unit"`
+	Unit      string    `json:"unit"`
 	Value     float64   `json:"value"`
 	Timestamp time.Time `json:"timestamp"`
 }
@@ -88,6 +88,9 @@ func (o *handler) handle(msg *paho.Publish) {
 		err := json.Unmarshal(msg.Payload, &sensorMessage)
 		if err != nil {
 			fmt.Printf("Message could not be parsed (%s): %s", msg.Payload, err)
+		}
+		if sensorMessage.Timestamp.IsZero() {
+			sensorMessage.Timestamp = time.Now()
 		}
 
 		splittedTopic := strings.Split(msg.Topic, "/")
