@@ -94,7 +94,7 @@ func (o *handler) handle(msg *paho.Publish) {
 		}
 
 		splittedTopic := strings.Split(msg.Topic, "/")
-		if len(splittedTopic) != 3 {
+		if len(splittedTopic) != 4 {
 			fmt.Printf("Topic is not in the correct format: %s", msg.Topic)
 			return
 		}
