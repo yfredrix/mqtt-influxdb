@@ -42,26 +42,66 @@ func splitTopic(topic string) (string, string, error) {
 	return mainTopic, subTopic, nil
 }
 
-// Message is used for marshalling/unmarshalling the JSON message (just a count)
-type Message struct {
+type sensorMessage struct {
+	Unit      string    `json:"Unit"`
+	Value     float64   `json:"value"`
+	Timestamp time.Time `json:"timestamp"`
+}
+
+type InfluxMessage struct {
 	Measurement string                 `json:"measurement"`
 	Tags        map[string]string      `json:"tags"`
 	Fields      map[string]interface{} `json:"fields"`
 	Time        time.Time              `json:"time"`
 }
 
+func toInfluxMessage(measurement string, location string, sensorId string, message sensorMessage) InfluxMessage {
+	return InfluxMessage{
+		Measurement: measurement,
+		Tags: map[string]string{
+			"unit":     message.Unit,
+			"location": location,
+		},
+		Fields: map[string]interface{}{
+			sensorId: message.Value,
+		},
+		Time: message.Timestamp,
+	}
+}
+
 // handle is called when a message is received
 func (o *handler) handle(msg *paho.Publish) {
-	// We extract the json structure from the payload
-	var p1Message Message
-	err := json.Unmarshal(msg.Payload, &p1Message)
-	if err != nil {
-		fmt.Printf("Message could not be parsed (%s): %s", msg.Payload, err)
-	}
-	_, subTopic, err := splitTopic(msg.Topic)
-	if err != nil {
-		fmt.Printf("Error splitting topic: %s", err)
+	if strings.Contains(msg.Topic, "p1") {
+		var p1Message InfluxMessage
+		err := json.Unmarshal(msg.Payload, &p1Message)
+		if err != nil {
+			fmt.Printf("Message could not be parsed (%s): %s", msg.Payload, err)
+		}
+		_, subTopic, err := splitTopic(msg.Topic)
+		if err != nil {
+			fmt.Printf("Error splitting topic: %s", err)
+			return
+		}
+		writePoint(subTopic, p1Message, o.client, o.organization)
+	} else if strings.Contains(msg.Topic, "sensors") {
+		var sensorMessage sensorMessage
+		err := json.Unmarshal(msg.Payload, &sensorMessage)
+		if err != nil {
+			fmt.Printf("Message could not be parsed (%s): %s", msg.Payload, err)
+		}
+
+		splittedTopic := strings.Split(msg.Topic, "/")
+		if len(splittedTopic) != 3 {
+			fmt.Printf("Topic is not in the correct format: %s", msg.Topic)
+			return
+		}
+		bucket, measurement, location, sensorId := splittedTopic[0], splittedTopic[1], splittedTopic[2], splittedTopic[3]
+
+		sensorInfluxMessage := toInfluxMessage(measurement, location, sensorId, sensorMessage)
+
+		writePoint(bucket, sensorInfluxMessage, o.client, o.organization)
+	} else {
+		fmt.Printf("Unknown topic: %s", msg.Topic)
 		return
 	}
-	writePoint(subTopic, p1Message, o.client, o.organization)
 }

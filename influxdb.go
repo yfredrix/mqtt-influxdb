@@ -31,7 +31,7 @@ func influxClient(cfg config) influxdb2.Client {
 	return client
 }
 
-func writePoint(topic string, payload Message, client influxdb2.Client, organization string) {
+func writePoint(topic string, payload InfluxMessage, client influxdb2.Client, organization string) {
 	writeAPI := client.WriteAPI(organization, topic)
 	p := influxdb2.NewPoint(payload.Measurement, payload.Tags, payload.Fields, payload.Time)
 	writeAPI.WritePoint(p)
