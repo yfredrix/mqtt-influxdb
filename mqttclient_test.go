@@ -47,7 +47,7 @@ func generateTestCerts(caFile, clientFile, keyFile string) error {
 	// Generate client certificate
 	client := &x509.Certificate{
 		SerialNumber: big.NewInt(2),
-		Subject:      pkix.Name{Organization: []string{"Test Client"}},
+		Subject:      pkix.Name{Organization: []string{"Test CA"}, CommonName: "Test Client"},
 		NotBefore:    time.Now(),
 		NotAfter:     time.Now().AddDate(1, 0, 0),
 		KeyUsage:     x509.KeyUsageDigitalSignature,
@@ -95,12 +95,15 @@ func TestLoadTLSConfig(t *testing.T) {
 	defer os.Remove(clientFile) //nolint:errcheck
 	defer os.Remove(keyFile)    //nolint:errcheck
 
-	tlsConfig, err := loadTLSConfig(caFile, clientFile, keyFile)
+	tlsConfig, name, err := loadTLSConfig(caFile, clientFile, keyFile)
 	if err != nil {
 		t.Fatalf("failed to load TLS config: %v", err)
 	}
 	if tlsConfig == nil {
 		t.Fatal("expected tlsConfig to be created, got nil")
+	}
+	if name != "Test Client" {
+		t.Errorf("expected CommonName to be 'Test Client', got '%s'", name)
 	}
 
 	if len(tlsConfig.Certificates) != 1 {
