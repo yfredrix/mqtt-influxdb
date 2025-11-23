@@ -14,10 +14,11 @@ import (
 	"github.com/eclipse/paho.golang/paho/session/state"
 )
 
-func loadTLSConfig(caFile string, clientFile string, keyFile string) (*tls.Config, error) {
+func loadTLSConfig(caFile string, clientFile string, keyFile string) (*tls.Config, string, error) {
 	// load tls config
 	tlsConfig := &tls.Config{}
 	tlsConfig.InsecureSkipVerify = false
+	CommonName := ""
 	if caFile != "" {
 		// Get the SystemCertPool, continue with an empty pool on error
 		rootCAs, _ := x509.SystemCertPool()
@@ -36,17 +37,18 @@ func loadTLSConfig(caFile string, clientFile string, keyFile string) (*tls.Confi
 		// Import client certificate/key pair
 		cert, err := tls.LoadX509KeyPair(clientFile, keyFile)
 		if err != nil {
-			return nil, err
+			return nil, CommonName, err
 		}
+		CommonName = cert.Leaf.Subject.CommonName
 		tlsConfig.RootCAs = rootCAs
 		tlsConfig.ClientAuth = tls.RequireAndVerifyClientCert
 		tlsConfig.Certificates = []tls.Certificate{cert}
 	}
-	return tlsConfig, nil
+	return tlsConfig, CommonName, nil
 }
 
 func createClient(cfg config, sessionState *state.State, h *handler) autopaho.ClientConfig {
-	TlsCfg, err := loadTLSConfig(cfg.ca, cfg.cert, cfg.key)
+	TlsCfg, commonName, err := loadTLSConfig(cfg.ca, cfg.cert, cfg.key)
 	if err != nil {
 		panic(err)
 	}
@@ -70,7 +72,8 @@ func createClient(cfg config, sessionState *state.State, h *handler) autopaho.Cl
 			}
 			fmt.Println("mqtt subscription made")
 		},
-		OnConnectError: func(err error) { fmt.Printf("error whilst attempting connection: %s\n", err) },
+		OnConnectError:  func(err error) { fmt.Printf("error whilst attempting connection: %s\n", err) },
+		ConnectUsername: commonName,
 		ClientConfig: paho.ClientConfig{
 			ClientID: cfg.clientID,
 			Session:  sessionState,
