@@ -39,6 +39,14 @@ func loadTLSConfig(caFile string, clientFile string, keyFile string) (*tls.Confi
 		if err != nil {
 			return nil, CommonName, err
 		}
+		// Parse the certificate to populate the Leaf field
+		if len(cert.Certificate) > 0 {
+			leaf, err := x509.ParseCertificate(cert.Certificate[0])
+			if err != nil {
+				return nil, CommonName, err
+			}
+			cert.Leaf = leaf
+		}
 		CommonName = cert.Leaf.Subject.CommonName
 		tlsConfig.RootCAs = rootCAs
 		tlsConfig.ClientAuth = tls.RequireAndVerifyClientCert
