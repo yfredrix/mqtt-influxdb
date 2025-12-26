@@ -6,15 +6,15 @@ import (
 	"strings"
 	"time"
 
+	influxdb3 "github.com/InfluxCommunity/influxdb3-go/v2/influxdb3"
 	"github.com/eclipse/paho.golang/paho"
-	influxdb2 "github.com/influxdata/influxdb-client-go/v2"
 )
 
 // handler is a simple struct that provides a function to be called when a message is received. The message is parsed
 // and the count followed by the raw message is written to the file (this makes it easier to sort the file)
 type handler struct {
 	organization string
-	client       influxdb2.Client
+	client       influxdb3.Client
 }
 
 // NewHandler creates a new output handler and opens the output file (if applicable)
@@ -82,7 +82,7 @@ func (o *handler) handle(msg *paho.Publish) {
 			fmt.Printf("Error splitting topic: %s", err)
 			return
 		}
-		writePoint(subTopic, p1Message, o.client, o.organization)
+		writePoint(subTopic, p1Message, o.client)
 	} else if strings.Contains(msg.Topic, "sensors") {
 		var sensorMessage sensorMessage
 		err := json.Unmarshal(msg.Payload, &sensorMessage)
@@ -102,7 +102,7 @@ func (o *handler) handle(msg *paho.Publish) {
 
 		sensorInfluxMessage := toInfluxMessage(measurement, location, sensorId, sensorMessage)
 
-		writePoint(bucket, sensorInfluxMessage, o.client, o.organization)
+		writePoint(bucket, sensorInfluxMessage, o.client)
 	} else {
 		fmt.Printf("Unknown topic: %s", msg.Topic)
 		return

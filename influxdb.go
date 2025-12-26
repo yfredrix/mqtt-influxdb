@@ -1,11 +1,14 @@
 package main
 
 import (
+	"context"
 	"crypto/tls"
 	"crypto/x509"
 	"fmt"
+	"net/http"
 
-	influxdb2 "github.com/influxdata/influxdb-client-go/v2"
+	influxdb3 "github.com/InfluxCommunity/influxdb3-go/v2/influxdb3"
+	"github.com/influxdata/line-protocol/v2/lineprotocol"
 )
 
 func creatTLSConfigInflux() *tls.Config {
@@ -21,19 +24,28 @@ func creatTLSConfigInflux() *tls.Config {
 	return tlsConfig
 }
 
-func influxClient(cfg config) influxdb2.Client {
-	var clientOptions = influxdb2.DefaultOptions()
+func influxClient(cfg config) *influxdb3.Client {
+	transport := &http.Transport{
+		TLSClientConfig: creatTLSConfigInflux(),
+	}
+	http_client := &http.Client{
+		Transport: transport,
+	}
 
-	clientOptions.SetApplicationName("p1DataWriterGo")
-	clientOptions.SetTLSConfig(creatTLSConfigInflux())
-
-	client := influxdb2.NewClientWithOptions(cfg.influxURL, cfg.influxToken, clientOptions)
+	client, err := influxdb3.New(influxdb3.ClientConfig{Host: cfg.influxURL, Token: cfg.influxToken, Database: cfg.influxDatabase, HTTPClient: http_client})
+	if err != nil {
+		fmt.Printf("Error creating InfluxDB client: %v\n", err)
+		panic(err)
+	}
 	return client
 }
 
-func writePoint(topic string, payload InfluxMessage, client influxdb2.Client, organization string) {
-	writeAPI := client.WriteAPI(organization, topic)
-	p := influxdb2.NewPoint(payload.Measurement, payload.Tags, payload.Fields, payload.Time)
-	writeAPI.WritePoint(p)
-	writeAPI.Flush()
+func writePoint(topic string, payload InfluxMessage, client influxdb3.Client) error {
+	p := influxdb3.NewPoint(payload.Measurement, payload.Tags, payload.Fields, payload.Time)
+	points := []*influxdb3.Point{p}
+	err := client.WritePoints(context.Background(), points, influxdb3.WithPrecision(lineprotocol.Millisecond))
+	if err != nil {
+		return err
+	}
+	return nil
 }

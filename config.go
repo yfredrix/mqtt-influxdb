@@ -22,9 +22,10 @@ const (
 	clientFile = "CERTFILE" // path to the client certificate
 	keyFile    = "KEYFILE"  // path to the client key
 
-	influxURL   = "INFLUXDB_URL"   // URL of the influx server
-	influxToken = "INFLUXDB_TOKEN" // token to use when connecting to influx
-	influxOrg   = "INFLUXDB_ORG"   // organization to use when connecting to influx
+	influxURL      = "INFLUXDB_URL"      // URL of the influx server
+	influxToken    = "INFLUXDB_TOKEN"    // token to use when connecting to influx
+	influxOrg      = "INFLUXDB_ORG"      // organization to use when connecting to influx
+	influxDatabase = "INFLUXDB_DATABASE" // database to use when connecting to influx
 
 	envKeepAlive         = "KEEPALIVE"     // seconds between keepalive packets
 	envConnectRetryDelay = "RETRYINTERVAL" // milliseconds to delay between connection attempts
@@ -49,9 +50,10 @@ type config struct {
 
 	sessionFolder string // path where session state should be stored (if blank this will be held in RAM)
 
-	influxURL   string // URL of the influx server
-	influxToken string // token to use when connecting to influx
-	influxOrg   string // organization to use when connecting to influx
+	influxURL      string // URL of the influx server
+	influxToken    string // token to use when connecting to influx
+	influxOrg      string // organization to use when connecting to influx
+	influxDatabase string // database to use when connecting to influx
 
 	debug bool // autopaho and paho debug output requested
 }
@@ -118,6 +120,10 @@ func getConfig() (config, error) {
 		return config{}, err
 	}
 	cfg.influxOrg, err = stringFromEnv(influxOrg)
+	if err != nil {
+		return config{}, err
+	}
+	cfg.influxDatabase, err = stringFromEnv(influxDatabase)
 	if err != nil {
 		return config{}, err
 	}
