@@ -8,6 +8,7 @@ import (
 
 	"github.com/eclipse/paho.golang/paho"
 	influxdb2 "github.com/influxdata/influxdb-client-go/v2"
+	"github.com/influxdata/influxdb-client-go/v2/api"
 )
 
 // handler is a simple struct that provides a function to be called when a message is received. The message is parsed
@@ -172,14 +173,15 @@ func handleSolarMessage(msg *paho.Publish, client influxdb2.Client, organization
 		return
 	}
 
-	// Write all points first, then flush each WriteAPI once to reduce network overhead.
+	writeAPIs := make(map[string]api.WriteAPI)
 	for bucket, influxMsg := range points {
 		writeAPI := client.WriteAPI(organization, bucket)
+		writeAPIs[bucket] = writeAPI
 		p := influxdb2.NewPoint(influxMsg.Measurement, influxMsg.Tags, influxMsg.Fields, influxMsg.Time)
 		writeAPI.WritePoint(p)
 	}
-	for bucket := range points {
-		client.WriteAPI(organization, bucket).Flush()
+	for _, writeAPI := range writeAPIs {
+		writeAPI.Flush()
 	}
 }
 

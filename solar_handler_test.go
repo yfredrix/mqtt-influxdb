@@ -51,7 +51,7 @@ func TestClassifySolarField(t *testing.T) {
 	}
 }
 
-func TestHandleSolarMessage_ParsesAndRoutesFields(t *testing.T) {
+func TestBuildSolarPoints_ParsesAndRoutesFields(t *testing.T) {
 	payload := map[string]interface{}{
 		"model": "SE2200H/inverter",
 		"data": map[string]interface{}{
