@@ -76,9 +76,23 @@ type solarMessage struct {
 	Source    string                 `json:"source"`
 }
 
+// solarTagKeys is the explicit allowlist of data fields that should be stored as InfluxDB tags.
+var solarTagKeys = map[string]bool{
+	"status":           true,
+	"model_id":         true,
+	"model_length":     true,
+	"status_vendor_16": true,
+	"status_vendor_32": true,
+	"status_code":      true,
+}
+
 // classifySolarField maps a data field key to its target InfluxDB bucket.
 // Returns "tag" for fields that should be stored as tags instead of measurement fields.
+// Returns "" for unknown fields that should be skipped.
 func classifySolarField(key string) string {
+	if solarTagKeys[key] {
+		return "tag"
+	}
 	switch {
 	case strings.HasSuffix(key, "_wh"):
 		return "latest_energy"
@@ -90,18 +104,19 @@ func classifySolarField(key string) string {
 		strings.HasSuffix(key, "_hz"):
 		return "latest_voltage_current"
 	case strings.HasPrefix(key, "temp_"):
-		return "huis_sensors"
+		return "sensors"
 	default:
-		return "tag"
+		return ""
 	}
 }
 
-func handleSolarMessage(msg *paho.Publish, client influxdb2.Client, organization string) {
+// buildSolarPoints parses a raw solar MQTT payload and returns a map of
+// bucket name → InfluxMessage ready for writing. Only buckets with at least
+// one field are included in the result.
+func buildSolarPoints(payload []byte) (map[string]InfluxMessage, error) {
 	var solar solarMessage
-	err := json.Unmarshal(msg.Payload, &solar)
-	if err != nil {
-		fmt.Printf("Solar message could not be parsed (%s): %s", msg.Payload, err)
-		return
+	if err := json.Unmarshal(payload, &solar); err != nil {
+		return nil, err
 	}
 
 	sec := int64(solar.Timestamp)
@@ -117,7 +132,7 @@ func handleSolarMessage(msg *paho.Publish, client influxdb2.Client, organization
 		"latest_energy":          {},
 		"latest_energy_current":  {},
 		"latest_voltage_current": {},
-		"huis_sensors":           {},
+		"sensors":                {},
 	}
 
 	for key, val := range solar.Data {
@@ -125,30 +140,52 @@ func handleSolarMessage(msg *paho.Publish, client influxdb2.Client, organization
 			continue
 		}
 		bucket := classifySolarField(key)
-		if bucket == "tag" {
+		switch bucket {
+		case "tag":
 			tags[key] = fmt.Sprintf("%v", val)
-		} else {
+		case "":
+			fmt.Printf("Unknown solar field %q, skipping\n", key)
+		default:
 			buckets[bucket][key] = val
 		}
 	}
 
+	result := make(map[string]InfluxMessage)
 	for bucket, fields := range buckets {
 		if len(fields) == 0 {
 			continue
 		}
-		influxMsg := InfluxMessage{
+		result[bucket] = InfluxMessage{
 			Measurement: solar.Source,
 			Tags:        tags,
 			Fields:      fields,
 			Time:        timestamp,
 		}
-		writePoint(bucket, influxMsg, client, organization)
+	}
+	return result, nil
+}
+
+func handleSolarMessage(msg *paho.Publish, client influxdb2.Client, organization string) {
+	points, err := buildSolarPoints(msg.Payload)
+	if err != nil {
+		fmt.Printf("Solar message could not be parsed (%s): %s", msg.Payload, err)
+		return
+	}
+
+	// Write all points first, then flush each WriteAPI once to reduce network overhead.
+	for bucket, influxMsg := range points {
+		writeAPI := client.WriteAPI(organization, bucket)
+		p := influxdb2.NewPoint(influxMsg.Measurement, influxMsg.Tags, influxMsg.Fields, influxMsg.Time)
+		writeAPI.WritePoint(p)
+	}
+	for bucket := range points {
+		client.WriteAPI(organization, bucket).Flush()
 	}
 }
 
 // handle is called when a message is received
 func (o *handler) handle(msg *paho.Publish) {
-	if strings.HasPrefix(msg.Topic, "solar") {
+	if strings.HasPrefix(msg.Topic, "solaredge/") {
 		handleSolarMessage(msg, o.client, o.organization)
 	} else if strings.Contains(msg.Topic, "p1") {
 		var p1Message InfluxMessage
