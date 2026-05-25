@@ -154,7 +154,7 @@ func TestTransformSolarValue(t *testing.T) {
 		{"wh suffix converts to kWh", "ac_energy_wh", float64(6000), "ac_energy_kwh", float64(6)},
 		{"fractional watt", "dc_power_w", float64(1500), "dc_power_kw", float64(1.5)},
 		{"zero watt", "ac_power_w", float64(0), "ac_power_kw", float64(0)},
-		{"non-numeric watt key renamed but val unchanged", "ac_power_w", "string-val", "ac_power_w", "string-val"},
+		{"non-numeric watt key unchanged", "ac_power_w", "string-val", "ac_power_w", "string-val"},
 		{"non-watt key unchanged", "temp_sink_c", float64(45.14), "temp_sink_c", float64(45.14)},
 		{"va value unchanged", "ac_apparent_power_va", float64(1158.1), "ac_apparent_power_va", float64(1158.1)},
 		{"non-watt string unchanged", "status", "MPPT", "status", "MPPT"},
