@@ -111,6 +111,22 @@ func classifySolarField(key string) string {
 	}
 }
 
+func transformSolarValue(key string, val interface{}) (string, interface{}) {
+	switch {
+	case strings.HasSuffix(key, "_wh"):
+		// convert watt-hour values to kilowatt-hours and rename accordingly
+		if num, ok := val.(float64); ok {
+			return strings.TrimSuffix(key, "_wh") + "_kwh", num / 1000
+		}
+	case strings.HasSuffix(key, "_w"):
+		// convert watt values to kilowatts and rename accordingly
+		if num, ok := val.(float64); ok {
+			return strings.TrimSuffix(key, "_w") + "_kw", num / 1000
+		}
+	}
+	return key, val
+}
+
 // buildSolarPoints parses a raw solar MQTT payload and returns a map of
 // bucket name → InfluxMessage ready for writing. Only buckets with at least
 // one field are included in the result.
@@ -147,7 +163,8 @@ func buildSolarPoints(payload []byte) (map[string]InfluxMessage, error) {
 		case "":
 			fmt.Printf("Unknown solar field %q, skipping\n", key)
 		default:
-			buckets[bucket][key] = val
+			newKey, transformValue := transformSolarValue(key, val)
+			buckets[bucket][newKey] = transformValue
 		}
 	}
 
