@@ -43,6 +43,11 @@ func splitTopic(topic string) (string, string, error) {
 	return mainTopic, subTopic, nil
 }
 
+type genericPayloadMessage struct {
+	value float64   `json:"value"`
+	time  time.Time `json:"time"`
+}
+
 type sensorMessage struct {
 	Unit      string    `json:"unit"`
 	Value     float64   `json:"value"`
@@ -238,6 +243,33 @@ func (o *handler) handle(msg *paho.Publish) {
 		sensorInfluxMessage := toInfluxMessage(measurement, location, sensorId, sensorMessage)
 
 		writePoint(bucket, sensorInfluxMessage, o.client, o.organization)
+	} else if strings.Contains(msg.Topic, "victron") {
+		var victronMessage genericPayloadMessage
+		err := json.Unmarshal(msg.Payload, &victronMessage)
+		if err != nil {
+			fmt.Printf("Message could not be parsed (%s): %s", msg.Payload, err)
+		}
+		splitTopic := strings.Split(msg.Topic, "/")
+		if len(splitTopic) < 7 {
+			fmt.Printf("Topic is not in the correct format: %s", msg.Topic)
+			return
+		}
+		bucket, measurement := splitTopic[0], splitTopic[2]
+		tags := map[string]string{
+			"DeviceID": splitTopic[1],
+			"Phase":    splitTopic[5],
+		}
+		fields := map[string]interface{}{
+			splitTopic[6]: victronMessage.value,
+		}
+		victronInfluxMessage := InfluxMessage{
+			Measurement: measurement,
+			Tags:        tags,
+			Fields:      fields,
+			Time:        time.Now(),
+		}
+		writePoint(bucket, victronInfluxMessage, o.client, o.organization)
+
 	} else {
 		fmt.Printf("Unknown topic: %s", msg.Topic)
 		return
