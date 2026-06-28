@@ -40,6 +40,18 @@ func TestBuildVictronPoint_ExampleMessages(t *testing.T) {
 			expectedMillis: 1782637540383,
 		},
 		{
+			name:           "Max Discharge Power Message",
+			topic:          "victron/a7f3c19de82b/hub4/0/MaxDischargePower",
+			payload:        []byte(`{"value": 4688.9998626709, "timestamp": 1782637544452}`),
+			expectedBucket: "victron",
+			expectedMetric: "hub4",
+			expectedPortal: "a7f3c19de82b",
+			expectedDevice: "0",
+			expectedField:  "MaxDischargePower",
+			expectedValue:  4688.9998626709,
+			expectedMillis: 1782637544452,
+		},
+		{
 			name:           "heartbeat message with short topic",
 			topic:          "victron/a7f3c19de82b/heartbeat",
 			payload:        []byte(`{"value": 1782637540, "timestamp": 1782637540438}`),
