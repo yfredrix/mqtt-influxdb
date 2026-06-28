@@ -31,6 +31,9 @@ const (
 
 	envSessionFolder = "SESSIONFOLDER" // folder used to persist the session state (if empty state will be held in RAM)
 	envDebug         = "DEBUG"         // if "true" then the libraries will be instructed to print debug info
+
+	envInfluxWriteBatchSize  = "INFLUXDB_WRITE_BATCH_SIZE"  // max points per write batch
+	envInfluxFlushIntervalMS = "INFLUXDB_FLUSH_INTERVAL_MS" // periodic flush interval in milliseconds
 )
 
 // config holds the configuration
@@ -52,6 +55,9 @@ type config struct {
 	influxURL   string // URL of the influx server
 	influxToken string // token to use when connecting to influx
 	influxOrg   string // organization to use when connecting to influx
+
+	influxWriteBatchSize  uint          // max points in a single async write batch
+	influxFlushIntervalMS time.Duration // async write flush interval
 
 	debug bool // autopaho and paho debug output requested
 }
@@ -122,6 +128,17 @@ func getConfig() (config, error) {
 		return config{}, err
 	}
 
+	batchSize, err := intFromEnvWithDefault(envInfluxWriteBatchSize, 5000, 32)
+	if err != nil {
+		return config{}, err
+	}
+	cfg.influxWriteBatchSize = uint(batchSize)
+
+	cfg.influxFlushIntervalMS, err = milliSecondsFromEnvWithDefault(envInfluxFlushIntervalMS, 1000)
+	if err != nil {
+		return config{}, err
+	}
+
 	return cfg, nil
 }
 
@@ -147,11 +164,35 @@ func intFromEnv(key string, maxsize int) (uint64, error) {
 	return i, nil
 }
 
+func intFromEnvWithDefault(key string, defaultValue uint64, maxsize int) (uint64, error) {
+	s := os.Getenv(key)
+	if len(s) == 0 {
+		return defaultValue, nil
+	}
+	i, err := strconv.ParseUint(s, 10, maxsize)
+	if err != nil {
+		return 0, fmt.Errorf("environmental variable %s must be an integer", key)
+	}
+	return i, nil
+}
+
 // milliSecondsFromEnv - Retrieves milliseconds (as time.Duration) from the environment (must be present and valid)
 func milliSecondsFromEnv(key string) (time.Duration, error) {
 	s := os.Getenv(key)
 	if len(s) == 0 {
 		return 0, fmt.Errorf("environmental variable %s must not be blank", key)
+	}
+	i, err := strconv.Atoi(s)
+	if err != nil {
+		return 0, fmt.Errorf("environmental variable %s must be an integer", key)
+	}
+	return time.Duration(i) * time.Millisecond, nil
+}
+
+func milliSecondsFromEnvWithDefault(key string, defaultValueMS int) (time.Duration, error) {
+	s := os.Getenv(key)
+	if len(s) == 0 {
+		return time.Duration(defaultValueMS) * time.Millisecond, nil
 	}
 	i, err := strconv.Atoi(s)
 	if err != nil {
