@@ -27,7 +27,7 @@ func influxClient(cfg config) influxdb2.Client {
 	clientOptions.SetApplicationName("p1DataWriterGo")
 	clientOptions.SetTLSConfig(creatTLSConfigInflux())
 	clientOptions.SetBatchSize(cfg.influxWriteBatchSize)
-	clientOptions.SetFlushInterval(uint(cfg.influxFlushIntervalMS.Milliseconds()))
+	clientOptions.SetFlushInterval(uint(cfg.influxFlushInterval.Milliseconds()))
 
 	client := influxdb2.NewClientWithOptions(cfg.influxURL, cfg.influxToken, clientOptions)
 	return client

@@ -32,8 +32,8 @@ const (
 	envSessionFolder = "SESSIONFOLDER" // folder used to persist the session state (if empty state will be held in RAM)
 	envDebug         = "DEBUG"         // if "true" then the libraries will be instructed to print debug info
 
-	envInfluxWriteBatchSize  = "INFLUXDB_WRITE_BATCH_SIZE"  // max points per write batch
-	envInfluxFlushInterval = "INFLUXDB_FLUSH_INTERVAL_MS" // periodic flush interval in milliseconds
+	envInfluxWriteBatchSize = "INFLUXDB_WRITE_BATCH_SIZE"  // max points per write batch
+	envInfluxFlushInterval  = "INFLUXDB_FLUSH_INTERVAL_MS" // periodic flush interval in milliseconds
 )
 
 // config holds the configuration
@@ -56,8 +56,8 @@ type config struct {
 	influxToken string // token to use when connecting to influx
 	influxOrg   string // organization to use when connecting to influx
 
-	influxWriteBatchSize  uint          // max points in a single async write batch
-	influxFlushIntervalMS time.Duration // async write flush interval
+	influxWriteBatchSize uint          // max points in a single async write batch
+	influxFlushInterval  time.Duration // async write flush interval
 
 	debug bool // autopaho and paho debug output requested
 }
@@ -134,7 +134,7 @@ func getConfig() (config, error) {
 	}
 	cfg.influxWriteBatchSize = uint(batchSize)
 
-	cfg.influxFlushIntervalMS, err = milliSecondsFromEnvWithDefault(envInfluxFlushInterval, 1000)
+	cfg.influxFlushInterval, err = milliSecondsFromEnvWithDefault(envInfluxFlushInterval, 1000)
 	if err != nil {
 		return config{}, err
 	}
