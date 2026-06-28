@@ -224,6 +224,32 @@ func buildSolarPoints(payload []byte) (map[string]InfluxMessage, error) {
 	return result, nil
 }
 
+func handleSolarMessage(msg *paho.Publish, client influxdb2.Client, organization string) {
+	points, err := buildSolarPoints(msg.Payload)
+	if err != nil {
+		fmt.Printf("Solar message could not be parsed (%s): %s", msg.Payload, err)
+		return
+	}
+
+	for bucket, influxMsg := range points {
+		writeAPI := client.WriteAPI(organization, bucket)
+		p := influxdb2.NewPoint(influxMsg.Measurement, influxMsg.Tags, influxMsg.Fields, influxMsg.Time)
+		writeAPI.WritePoint(p)
+	}
+}
+
+func (o *handler) handleSolarMessage(msg *paho.Publish) {
+	points, err := buildSolarPoints(msg.Payload)
+	if err != nil {
+		fmt.Printf("Solar message could not be parsed (%s): %s", msg.Payload, err)
+		return
+	}
+
+	for bucket, influxMsg := range points {
+		o.writePoint(bucket, influxMsg)
+	}
+}
+
 func buildVictronPoint(topic string, payload []byte) (string, InfluxMessage, error) {
 	var victronMessage genericPayloadMessage
 	if err := json.Unmarshal(payload, &victronMessage); err != nil {
@@ -258,70 +284,6 @@ func buildVictronPoint(topic string, payload []byte) (string, InfluxMessage, err
 			fieldKey: victronMessage.Value,
 		},
 		Time: time.UnixMilli(victronMessage.Timestamp),
-	}
-
-	return bucket, point, nil
-}
-
-func handleSolarMessage(msg *paho.Publish, client influxdb2.Client, organization string) {
-	points, err := buildSolarPoints(msg.Payload)
-	if err != nil {
-		fmt.Printf("Solar message could not be parsed (%s): %s", msg.Payload, err)
-		return
-	}
-
-	for bucket, influxMsg := range points {
-		writeAPI := client.WriteAPI(organization, bucket)
-		p := influxdb2.NewPoint(influxMsg.Measurement, influxMsg.Tags, influxMsg.Fields, influxMsg.Time)
-		writeAPI.WritePoint(p)
-	}
-}
-
-func (o *handler) handleSolarMessage(msg *paho.Publish) {
-	points, err := buildSolarPoints(msg.Payload)
-	if err != nil {
-		fmt.Printf("Solar message could not be parsed (%s): %s", msg.Payload, err)
-		return
-	}
-
-	for bucket, influxMsg := range points {
-		o.writePoint(bucket, influxMsg)
-	}
-}
-
-func buildVictronPoint(topic string, payload []byte) (string, InfluxMessage, error) {
-	var victronMessage genericPayloadMessage
-	if err := json.Unmarshal(payload, &victronMessage); err != nil {
-		return "", InfluxMessage{}, err
-	}
-
-	splitTopic := strings.Split(topic, "/")
-	if len(splitTopic) < 3 {
-		return "", InfluxMessage{}, fmt.Errorf("topic is not in the correct format: %s", topic)
-	}
-
-	bucket := splitTopic[0]
-	serviceType := splitTopic[2]
-	deviceInstance := ""
-	if len(splitTopic) > 3 {
-		deviceInstance = splitTopic[3]
-	}
-
-	fieldKey := "value"
-	if len(splitTopic) > 4 {
-		fieldKey = strings.Join(splitTopic[4:], "/")
-	}
-
-	point := InfluxMessage{
-		Measurement: serviceType,
-		Tags: map[string]string{
-			"VRM_Portal_ID":   splitTopic[1],
-			"Device_Instance": deviceInstance,
-		},
-		Fields: map[string]interface{}{
-			fieldKey: victronMessage.Value,
-		},
-		Time: time.UnixMilli(int64(victronMessage.Timestamp)),
 	}
 
 	return bucket, point, nil
@@ -362,7 +324,7 @@ func (o *handler) handle(msg *paho.Publish) {
 
 		sensorInfluxMessage := toInfluxMessage(measurement, location, sensorId, sensorMessage)
 
-		writePoint(bucket, sensorInfluxMessage, o.client, o.organization)
+		o.writePoint(bucket, sensorInfluxMessage)
 	} else if strings.HasPrefix(msg.Topic, "victron/") {
 		if !strings.HasSuffix(msg.Topic, "Batteries") {
 			bucket, victronInfluxMessage, err := buildVictronPoint(msg.Topic, msg.Payload)
@@ -370,7 +332,7 @@ func (o *handler) handle(msg *paho.Publish) {
 				fmt.Printf("Victron message could not be parsed (%s): %s", msg.Payload, err)
 				return
 			}
-			writePoint(bucket, victronInfluxMessage, o.client, o.organization)
+			o.writePoint(bucket, victronInfluxMessage)
 		}
 
 	} else {
