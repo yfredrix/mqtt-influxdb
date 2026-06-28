@@ -200,6 +200,7 @@ func buildVictronPoint(topic string, payload []byte) (string, InfluxMessage, err
 	}
 
 	bucket := topicParts[0]
+	vrm_portal_id := topicParts[1]
 	serviceType := topicParts[2]
 	deviceInstance := ""
 	if len(topicParts) > 3 {
@@ -214,7 +215,7 @@ func buildVictronPoint(topic string, payload []byte) (string, InfluxMessage, err
 	point := InfluxMessage{
 		Measurement: serviceType,
 		Tags: map[string]string{
-			"vrm_portal_id":   splitTopic[1],
+			"vrm_portal_id":   vrm_portal_id,
 			"device_instance": deviceInstance,
 		},
 		Fields: map[string]interface{}{
