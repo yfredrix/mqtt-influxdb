@@ -125,7 +125,7 @@ func TestBuildVictronPoint_InvalidInput(t *testing.T) {
 	}
 }
 
-func TestHandle_SkipsVictronBatteriesTopic(t *testing.T) {
+func TestHandle_SkipsVictronTopics(t *testing.T) {
 	h := &handler{organization: "test-org", client: nil}
 	msg := &paho.Publish{
 		Topic: "victron/f29b4d80a6ce/system/0/Batteries",
@@ -147,12 +147,111 @@ func TestHandle_SkipsVictronBatteriesTopic(t *testing.T) {
 			"timestamp": 1782637542140
 		}`),
 	}
+	msg2 := &paho.Publish{
+		Topic: "victron/f29b4d80a6ce/system/0/Network/Services",
+		Payload: []byte(`{
+			"value": [{
+			"ethernet": {
+    "Wired": {
+      "Address": "10.0.0.10",
+      "Gateway": "10.0.0.1",
+      "Mac": "AA:BB:CC:DD:EE:01",
+      "Method": "dhcp",
+      "Nameservers": ["10.0.0.1"],
+      "Netmask": "255.255.255.0",
+      "Service": "/net/connman/service/ethernet_aabbccddee01_cable",
+      "State": "ready"
+    }
+  },
+  "wifi": {
+    "<hidden>": {
+      "Address": "",
+      "Favorite": "no",
+      "Gateway": "",
+      "Mac": "AA:BB:CC:DD:EE:02",
+      "Method": "",
+      "Nameservers": [],
+      "Netmask": "",
+      "Secured": "yes",
+      "Service": "/net/connman/service/wifi_aabbccddee02_hidden_managed_psk",
+      "State": "idle",
+      "Strength": 30
+    },
+    "WiFi_1": {
+      "Address": "",
+      "Favorite": "no",
+      "Gateway": "",
+      "Mac": "AA:BB:CC:DD:EE:02",
+      "Method": "",
+      "Nameservers": [],
+      "Netmask": "",
+      "Secured": "yes",
+      "Service": "/net/connman/service/wifi_aabbccddee02_ssid01_managed_psk",
+      "State": "idle",
+      "Strength": 32
+    },
+    "WiFi_2": {
+      "Address": "",
+      "Favorite": "no",
+      "Gateway": "",
+      "Mac": "AA:BB:CC:DD:EE:02",
+      "Method": "",
+      "Nameservers": [],
+      "Netmask": "",
+      "Secured": "yes",
+      "Service": "/net/connman/service/wifi_aabbccddee02_ssid02_managed_psk",
+      "State": "idle",
+      "Strength": 59
+    },
+    "WiFi_3": {
+      "Address": "",
+      "Favorite": "no",
+      "Gateway": "",
+      "Mac": "AA:BB:CC:DD:EE:02",
+      "Method": "",
+      "Nameservers": [],
+      "Netmask": "",
+      "Secured": "yes",
+      "Service": "/net/connman/service/wifi_aabbccddee02_ssid03_managed_psk",
+      "State": "idle",
+      "Strength": 59
+    },
+    "WiFi_4": {
+      "Address": "",
+      "Favorite": "no",
+      "Gateway": "",
+      "Mac": "AA:BB:CC:DD:EE:02",
+      "Method": "",
+      "Nameservers": [],
+      "Netmask": "",
+      "Secured": "yes",
+      "Service": "/net/connman/service/wifi_aabbccddee02_ssid04_managed_psk",
+      "State": "idle",
+      "Strength": 37
+    },
+    "WiFi_5": {
+      "Address": "",
+      "Favorite": "no",
+      "Gateway": "",
+      "Mac": "AA:BB:CC:DD:EE:02",
+      "Method": "",
+      "Nameservers": [],
+      "Netmask": "",
+      "Secured": "yes",
+      "Service": "/net/connman/service/wifi_aabbccddee02_ssid05_managed_psk",
+      "State": "idle",
+      "Strength": 29
+    }
+  }
+}]}`),
+	}
 
 	defer func() {
 		if r := recover(); r != nil {
-			t.Fatalf("expected Batteries topic to be skipped without writing, but handle panicked: %v", r)
+			t.Fatalf("expected skipped topics to not write, but handle panicked: %v", r)
 		}
 	}()
 
 	h.handle(msg)
+	h.handle(msg2)
 }

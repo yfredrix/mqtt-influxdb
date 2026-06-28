@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/eclipse/paho.golang/paho"
@@ -16,6 +17,8 @@ import (
 type handler struct {
 	organization string
 	client       influxdb2.Client
+	writeAPIs    map[string]api.WriteAPI
+	mu           sync.Mutex
 }
 
 // NewHandler creates a new output handler and opens the output file (if applicable)
@@ -24,12 +27,45 @@ func NewHandler(cfg config) *handler {
 	return &handler{
 		organization: cfg.influxOrg,
 		client:       influxClient(cfg),
+		writeAPIs:    make(map[string]api.WriteAPI),
 	}
 }
 
 // Close closes the influxDB client
 func (o *handler) Close() {
+	o.mu.Lock()
+	defer o.mu.Unlock()
+
+	for _, writeAPI := range o.writeAPIs {
+		writeAPI.Flush()
+	}
 	o.client.Close()
+}
+
+func (o *handler) getWriteAPI(bucket string) api.WriteAPI {
+	if writeAPI, ok := o.writeAPIs[bucket]; ok {
+		return writeAPI
+	}
+
+	writeAPI := o.client.WriteAPI(o.organization, bucket)
+	o.writeAPIs[bucket] = writeAPI
+
+	go func(targetBucket string, errs <-chan error) {
+		for err := range errs {
+			fmt.Printf("Influx write error in bucket %q: %v\n", targetBucket, err)
+		}
+	}(bucket, writeAPI.Errors())
+
+	return writeAPI
+}
+
+func (o *handler) writePoint(bucket string, payload InfluxMessage) {
+	o.mu.Lock()
+	defer o.mu.Unlock()
+
+	writeAPI := o.getWriteAPI(bucket)
+	p := influxdb2.NewPoint(payload.Measurement, payload.Tags, payload.Fields, payload.Time)
+	writeAPI.WritePoint(p)
 }
 
 func splitTopic(topic string) (string, string, error) {
@@ -188,6 +224,32 @@ func buildSolarPoints(payload []byte) (map[string]InfluxMessage, error) {
 	return result, nil
 }
 
+func handleSolarMessage(msg *paho.Publish, client influxdb2.Client, organization string) {
+	points, err := buildSolarPoints(msg.Payload)
+	if err != nil {
+		fmt.Printf("Solar message could not be parsed (%s): %s", msg.Payload, err)
+		return
+	}
+
+	for bucket, influxMsg := range points {
+		writeAPI := client.WriteAPI(organization, bucket)
+		p := influxdb2.NewPoint(influxMsg.Measurement, influxMsg.Tags, influxMsg.Fields, influxMsg.Time)
+		writeAPI.WritePoint(p)
+	}
+}
+
+func (o *handler) handleSolarMessage(msg *paho.Publish) {
+	points, err := buildSolarPoints(msg.Payload)
+	if err != nil {
+		fmt.Printf("Solar message could not be parsed (%s): %s", msg.Payload, err)
+		return
+	}
+
+	for bucket, influxMsg := range points {
+		o.writePoint(bucket, influxMsg)
+	}
+}
+
 func buildVictronPoint(topic string, payload []byte) (string, InfluxMessage, error) {
 	var victronMessage genericPayloadMessage
 	if err := json.Unmarshal(payload, &victronMessage); err != nil {
@@ -227,29 +289,10 @@ func buildVictronPoint(topic string, payload []byte) (string, InfluxMessage, err
 	return bucket, point, nil
 }
 
-func handleSolarMessage(msg *paho.Publish, client influxdb2.Client, organization string) {
-	points, err := buildSolarPoints(msg.Payload)
-	if err != nil {
-		fmt.Printf("Solar message could not be parsed (%s): %s", msg.Payload, err)
-		return
-	}
-
-	writeAPIs := make(map[string]api.WriteAPI)
-	for bucket, influxMsg := range points {
-		writeAPI := client.WriteAPI(organization, bucket)
-		writeAPIs[bucket] = writeAPI
-		p := influxdb2.NewPoint(influxMsg.Measurement, influxMsg.Tags, influxMsg.Fields, influxMsg.Time)
-		writeAPI.WritePoint(p)
-	}
-	for _, writeAPI := range writeAPIs {
-		writeAPI.Flush()
-	}
-}
-
 // handle is called when a message is received
 func (o *handler) handle(msg *paho.Publish) {
 	if strings.HasPrefix(msg.Topic, "solaredge/") {
-		handleSolarMessage(msg, o.client, o.organization)
+		o.handleSolarMessage(msg)
 	} else if strings.Contains(msg.Topic, "p1") {
 		var p1Message InfluxMessage
 		err := json.Unmarshal(msg.Payload, &p1Message)
@@ -261,7 +304,7 @@ func (o *handler) handle(msg *paho.Publish) {
 			fmt.Printf("Error splitting topic: %s", err)
 			return
 		}
-		writePoint(subTopic, p1Message, o.client, o.organization)
+		o.writePoint(subTopic, p1Message)
 	} else if strings.Contains(msg.Topic, "sensors") {
 		var sensorMessage sensorMessage
 		err := json.Unmarshal(msg.Payload, &sensorMessage)
@@ -281,15 +324,15 @@ func (o *handler) handle(msg *paho.Publish) {
 
 		sensorInfluxMessage := toInfluxMessage(measurement, location, sensorId, sensorMessage)
 
-		writePoint(bucket, sensorInfluxMessage, o.client, o.organization)
+		o.writePoint(bucket, sensorInfluxMessage)
 	} else if strings.HasPrefix(msg.Topic, "victron/") {
-		if !strings.HasSuffix(msg.Topic, "Batteries") {
+		if !strings.HasSuffix(msg.Topic, "Batteries") && !strings.HasSuffix(msg.Topic, "Network/Services") {
 			bucket, victronInfluxMessage, err := buildVictronPoint(msg.Topic, msg.Payload)
 			if err != nil {
 				fmt.Printf("Victron message could not be parsed (%s): %s", msg.Payload, err)
 				return
 			}
-			writePoint(bucket, victronInfluxMessage, o.client, o.organization)
+			o.writePoint(bucket, victronInfluxMessage)
 		}
 
 	} else {

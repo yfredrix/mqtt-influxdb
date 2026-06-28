@@ -30,16 +30,31 @@ This project is a Go-based application that acts as a bridge between an MQTT bro
 ## Configuration
 The application is configured using environment variables. Below are the key variables:
 
-| Variable               | Description                          | Example Value            |
-|------------------------|--------------------------------------|--------------------------|
-| `MQTT_SERVER_URL`      | URL of the MQTT broker              | `tcp://localhost:1883`   |
-| `MQTT_CLIENT_ID`       | Client ID for the MQTT connection   | `mqtt-client`            |
-| `MQTT_TOPIC`           | Topic to subscribe to               | `sensors/temperature`    |
-| `MQTT_QOS`             | Quality of Service level            | `1`                      |
-| `INFLUXDB_URL`         | URL of the InfluxDB instance        | `http://localhost:8086`  |
-| `INFLUXDB_TOKEN`       | Authentication token for InfluxDB   | `your-token`             |
-| `INFLUXDB_ORG`         | Organization name in InfluxDB       | `your-org`               |
-| `INFLUXDB_BUCKET`      | Bucket name in InfluxDB             | `your-bucket`            |
+| Variable | Required | Description | Example Value |
+|----------|----------|-------------|---------------|
+| `MQTTBROKERURL` | Yes | MQTT broker URL | `tcp://localhost:1883` |
+| `CLIENTID` | Yes | MQTT client ID | `mqtt-influxdb-bridge` |
+| `TOPIC` | Yes | MQTT topic to subscribe to | `sensors/temperature` |
+| `QOS` | Yes | MQTT QoS (`0`, `1`, or `2`) | `1` |
+| `CAFILE` | Yes | Path to CA certificate file | `/certs/ca.crt` |
+| `CERTFILE` | Yes | Path to client certificate file | `/certs/client.crt` |
+| `KEYFILE` | Yes | Path to client private key file | `/certs/client.key` |
+| `KEEPALIVE` | Yes | MQTT keepalive interval in seconds | `30` |
+| `RETRYINTERVAL` | Yes | Reconnect retry interval in milliseconds | `5000` |
+| `INFLUXDB_URL` | Yes | InfluxDB server URL | `http://localhost:8086` |
+| `INFLUXDB_TOKEN` | Yes | InfluxDB authentication token | `your-token` |
+| `INFLUXDB_ORG` | Yes | InfluxDB organization | `your-org` |
+| `SESSIONFOLDER` | No | Folder used to persist MQTT session state (empty uses in-memory state) | `/data/session` |
+| `DEBUG` | No | Enable Paho/autopaho debug logging (`true`/`false`) | `false` |
+
+### Influx Write Tuning (Optional)
+
+These variables control client-side async batching. If unset, defaults are used.
+
+| Variable                        | Default | Description |
+|---------------------------------|---------|-------------|
+| `INFLUXDB_WRITE_BATCH_SIZE`     | `5000`  | Maximum points queued before an automatic flush |
+| `INFLUXDB_FLUSH_INTERVAL_MS`    | `1000`  | Periodic flush interval in milliseconds |
 
 ## Running the Application
 1. Set the required environment variables.
