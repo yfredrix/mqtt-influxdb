@@ -41,6 +41,15 @@ The application is configured using environment variables. Below are the key var
 | `INFLUXDB_ORG`         | Organization name in InfluxDB       | `your-org`               |
 | `INFLUXDB_BUCKET`      | Bucket name in InfluxDB             | `your-bucket`            |
 
+### Influx Write Tuning (Optional)
+
+These variables control client-side async batching. If unset, defaults are used.
+
+| Variable                        | Default | Description |
+|---------------------------------|---------|-------------|
+| `INFLUXDB_WRITE_BATCH_SIZE`     | `5000`  | Maximum points queued before an automatic flush |
+| `INFLUXDB_FLUSH_INTERVAL_MS`    | `1000`  | Periodic flush interval in milliseconds |
+
 ## Running the Application
 1. Set the required environment variables.
 2. Run the application:
