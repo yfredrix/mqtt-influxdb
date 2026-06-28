@@ -214,8 +214,8 @@ func buildVictronPoint(topic string, payload []byte) (string, InfluxMessage, err
 	point := InfluxMessage{
 		Measurement: serviceType,
 		Tags: map[string]string{
-			"VRM_Portal_ID":   splitTopic[1],
-			"Device_Instance": deviceInstance,
+			"vrm_portal_id":   splitTopic[1],
+			"device_instance": deviceInstance,
 		},
 		Fields: map[string]interface{}{
 			fieldKey: victronMessage.Value,
