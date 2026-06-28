@@ -125,7 +125,7 @@ func TestBuildVictronPoint_InvalidInput(t *testing.T) {
 	}
 }
 
-func TestHandle_SkipsVictronBatteriesTopic(t *testing.T) {
+func TestHandle_SkipsVictronTopics(t *testing.T) {
 	h := &handler{organization: "test-org", client: nil}
 	msg := &paho.Publish{
 		Topic: "victron/f29b4d80a6ce/system/0/Batteries",
@@ -243,12 +243,12 @@ func TestHandle_SkipsVictronBatteriesTopic(t *testing.T) {
       "Strength": 29
     }
   }
-}]`),
+}]}`),
 	}
 
 	defer func() {
 		if r := recover(); r != nil {
-			t.Fatalf("expected Batteries topic to be skipped without writing, but handle panicked: %v", r)
+			t.Fatalf("expected skipped topics to not write, but handle panicked: %v", r)
 		}
 	}()
 

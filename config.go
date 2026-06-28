@@ -132,6 +132,9 @@ func getConfig() (config, error) {
 	if err != nil {
 		return config{}, err
 	}
+	if batchSize == 0 {
+		return config{}, fmt.Errorf("environmental variable %s must be a positive integer", envInfluxWriteBatchSize)
+	}
 	cfg.influxWriteBatchSize = uint(batchSize)
 
 	cfg.influxFlushInterval, err = milliSecondsFromEnvWithDefault(envInfluxFlushInterval, 1000)
@@ -197,6 +200,9 @@ func milliSecondsFromEnvWithDefault(key string, defaultValueMS int) (time.Durati
 	i, err := strconv.Atoi(s)
 	if err != nil {
 		return 0, fmt.Errorf("environmental variable %s must be an integer", key)
+	}
+	if i <= 0 {
+		return 0, fmt.Errorf("environmental variable %s must be a positive integer", key)
 	}
 	return time.Duration(i) * time.Millisecond, nil
 }

@@ -189,3 +189,145 @@ func TestIntFromEnvNegative(t *testing.T) {
 		t.Fatal("expected error for negative integer")
 	}
 }
+
+func TestInfluxWriteBatchSizeDefault(t *testing.T) {
+	setEnv(envServerURL, "http://localhost:1883")
+	setEnv(envClientID, "testClient")
+	setEnv(envTopic, "test/topic")
+	setEnv(envQos, "1")
+	setEnv(caFile, "path/to/ca.pem")
+	setEnv(clientFile, "path/to/client.pem")
+	setEnv(keyFile, "path/to/key.pem")
+	setEnv(envKeepAlive, "60")
+	setEnv(envConnectRetryDelay, "1000")
+	setEnv(influxURL, "http://localhost:8086")
+	setEnv(influxToken, "testToken")
+	setEnv(influxOrg, "testOrg")
+	defer func() {
+		unsetEnv(envServerURL)
+		unsetEnv(envClientID)
+		unsetEnv(envTopic)
+		unsetEnv(envQos)
+		unsetEnv(caFile)
+		unsetEnv(clientFile)
+		unsetEnv(keyFile)
+		unsetEnv(envKeepAlive)
+		unsetEnv(envConnectRetryDelay)
+		unsetEnv(influxURL)
+		unsetEnv(influxToken)
+		unsetEnv(influxOrg)
+		unsetEnv(envInfluxWriteBatchSize)
+		unsetEnv(envInfluxFlushInterval)
+	}()
+
+	cfg, err := getConfig()
+	if err != nil {
+		t.Fatalf("expected no error, got %v", err)
+	}
+	if cfg.influxWriteBatchSize != 5000 {
+		t.Errorf("expected default influxWriteBatchSize 5000, got %d", cfg.influxWriteBatchSize)
+	}
+	if cfg.influxFlushInterval != 1000*time.Millisecond {
+		t.Errorf("expected default influxFlushInterval 1000ms, got %v", cfg.influxFlushInterval)
+	}
+}
+
+func TestInfluxWriteBatchSizeZeroRejected(t *testing.T) {
+	setEnv(envInfluxWriteBatchSize, "0")
+	defer unsetEnv(envInfluxWriteBatchSize)
+
+	_, err := intFromEnvWithDefault(envInfluxWriteBatchSize, 5000, 32)
+	if err != nil {
+		t.Fatalf("intFromEnvWithDefault returned unexpected error: %v", err)
+	}
+	// Validate that getConfig rejects a zero batch size end-to-end
+	setEnv(envServerURL, "http://localhost:1883")
+	setEnv(envClientID, "testClient")
+	setEnv(envTopic, "test/topic")
+	setEnv(envQos, "1")
+	setEnv(caFile, "path/to/ca.pem")
+	setEnv(clientFile, "path/to/client.pem")
+	setEnv(keyFile, "path/to/key.pem")
+	setEnv(envKeepAlive, "60")
+	setEnv(envConnectRetryDelay, "1000")
+	setEnv(influxURL, "http://localhost:8086")
+	setEnv(influxToken, "testToken")
+	setEnv(influxOrg, "testOrg")
+	defer func() {
+		unsetEnv(envServerURL)
+		unsetEnv(envClientID)
+		unsetEnv(envTopic)
+		unsetEnv(envQos)
+		unsetEnv(caFile)
+		unsetEnv(clientFile)
+		unsetEnv(keyFile)
+		unsetEnv(envKeepAlive)
+		unsetEnv(envConnectRetryDelay)
+		unsetEnv(influxURL)
+		unsetEnv(influxToken)
+		unsetEnv(influxOrg)
+	}()
+
+	_, err = getConfig()
+	if err == nil {
+		t.Fatal("expected error when INFLUXDB_WRITE_BATCH_SIZE=0, got nil")
+	}
+}
+
+func TestInfluxWriteBatchSizeInvalidRejected(t *testing.T) {
+	_, err := intFromEnvWithDefault(envInfluxWriteBatchSize, 5000, 32)
+	if err != nil {
+		t.Fatalf("unexpected error with missing env var: %v", err)
+	}
+
+	setEnv(envInfluxWriteBatchSize, "not-a-number")
+	defer unsetEnv(envInfluxWriteBatchSize)
+
+	_, err = intFromEnvWithDefault(envInfluxWriteBatchSize, 5000, 32)
+	if err == nil {
+		t.Fatal("expected error for non-integer INFLUXDB_WRITE_BATCH_SIZE")
+	}
+}
+
+func TestInfluxFlushIntervalZeroRejected(t *testing.T) {
+	setEnv(envInfluxFlushInterval, "0")
+	defer unsetEnv(envInfluxFlushInterval)
+
+	_, err := milliSecondsFromEnvWithDefault(envInfluxFlushInterval, 1000)
+	if err == nil {
+		t.Fatal("expected error when INFLUXDB_FLUSH_INTERVAL_MS=0")
+	}
+}
+
+func TestInfluxFlushIntervalNegativeRejected(t *testing.T) {
+	setEnv(envInfluxFlushInterval, "-500")
+	defer unsetEnv(envInfluxFlushInterval)
+
+	_, err := milliSecondsFromEnvWithDefault(envInfluxFlushInterval, 1000)
+	if err == nil {
+		t.Fatal("expected error when INFLUXDB_FLUSH_INTERVAL_MS is negative")
+	}
+}
+
+func TestInfluxFlushIntervalInvalidRejected(t *testing.T) {
+	setEnv(envInfluxFlushInterval, "not-a-number")
+	defer unsetEnv(envInfluxFlushInterval)
+
+	_, err := milliSecondsFromEnvWithDefault(envInfluxFlushInterval, 1000)
+	if err == nil {
+		t.Fatal("expected error for non-integer INFLUXDB_FLUSH_INTERVAL_MS")
+	}
+}
+
+func TestInfluxFlushIntervalCustomValue(t *testing.T) {
+	setEnv(envInfluxFlushInterval, "2500")
+	defer unsetEnv(envInfluxFlushInterval)
+
+	d, err := milliSecondsFromEnvWithDefault(envInfluxFlushInterval, 1000)
+	if err != nil {
+		t.Fatalf("expected no error, got %v", err)
+	}
+	if d != 2500*time.Millisecond {
+		t.Errorf("expected 2500ms, got %v", d)
+	}
+}

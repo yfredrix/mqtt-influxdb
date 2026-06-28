@@ -43,9 +43,6 @@ func (o *handler) Close() {
 }
 
 func (o *handler) getWriteAPI(bucket string) api.WriteAPI {
-	o.mu.Lock()
-	defer o.mu.Unlock()
-
 	if writeAPI, ok := o.writeAPIs[bucket]; ok {
 		return writeAPI
 	}
@@ -63,6 +60,9 @@ func (o *handler) getWriteAPI(bucket string) api.WriteAPI {
 }
 
 func (o *handler) writePoint(bucket string, payload InfluxMessage) {
+	o.mu.Lock()
+	defer o.mu.Unlock()
+
 	writeAPI := o.getWriteAPI(bucket)
 	p := influxdb2.NewPoint(payload.Measurement, payload.Tags, payload.Fields, payload.Time)
 	writeAPI.WritePoint(p)
