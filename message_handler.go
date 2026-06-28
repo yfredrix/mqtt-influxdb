@@ -281,7 +281,7 @@ func (o *handler) handle(msg *paho.Publish) {
 		sensorInfluxMessage := toInfluxMessage(measurement, location, sensorId, sensorMessage)
 
 		writePoint(bucket, sensorInfluxMessage, o.client, o.organization)
-	} else if strings.Contains(msg.Topic, "victron") {
+	} else if strings.HasPrefix(msg.Topic, "victron/") {
 		if !strings.HasSuffix(msg.Topic, "Batteries") {
 			bucket, victronInfluxMessage, err := buildVictronPoint(msg.Topic, msg.Payload)
 			if err != nil {
