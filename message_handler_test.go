@@ -1,6 +1,10 @@
 package main
 
-import "testing"
+import (
+	"testing"
+
+	"github.com/eclipse/paho.golang/paho"
+)
 
 func TestBuildVictronPoint_ExampleMessages(t *testing.T) {
 	tests := []struct {
@@ -50,6 +54,18 @@ func TestBuildVictronPoint_ExampleMessages(t *testing.T) {
 			expectedField:  "MaxDischargePower",
 			expectedValue:  4688.9998626709,
 			expectedMillis: 1782637544452,
+		},
+		{
+			name:           "four-part topic defaults field key to value",
+			topic:          "victron/a7f3c19de82b/hub4/0",
+			payload:        []byte(`{"value": 1250.5, "timestamp": 1782637540999}`),
+			expectedBucket: "victron",
+			expectedMetric: "hub4",
+			expectedPortal: "a7f3c19de82b",
+			expectedDevice: "0",
+			expectedField:  "value",
+			expectedValue:  1250.5,
+			expectedMillis: 1782637540999,
 		},
 		{
 			name:           "heartbeat message with short topic",
@@ -107,4 +123,36 @@ func TestBuildVictronPoint_InvalidInput(t *testing.T) {
 	if _, _, err := buildVictronPoint("victron/a/grid/1/x", []byte(`not-json`)); err == nil {
 		t.Fatal("expected error for invalid payload")
 	}
+}
+
+func TestHandle_SkipsVictronBatteriesTopic(t *testing.T) {
+	h := &handler{organization: "test-org", client: nil}
+	msg := &paho.Publish{
+		Topic: "victron/f29b4d80a6ce/system/0/Batteries",
+		Payload: []byte(`{
+			"value": [
+				{
+					"voltage": 50.09000015258789,
+					"temperature": 29.5,
+					"state": 1,
+					"soc": 53,
+					"power": 616,
+					"name": "Pylontech battery",
+					"instance": 512,
+					"id": "com.victronenergy.battery.socketcan_vecan1",
+					"current": 12.300000190734863,
+					"active_battery_service": true
+				}
+			],
+			"timestamp": 1782637542140
+		}`),
+	}
+
+	defer func() {
+		if r := recover(); r != nil {
+			t.Fatalf("expected Batteries topic to be skipped without writing, but handle panicked: %v", r)
+		}
+	}()
+
+	h.handle(msg)
 }

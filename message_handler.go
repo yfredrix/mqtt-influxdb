@@ -191,7 +191,7 @@ func buildSolarPoints(payload []byte) (map[string]InfluxMessage, error) {
 func buildVictronPoint(topic string, payload []byte) (string, InfluxMessage, error) {
 	var victronMessage genericPayloadMessage
 	if err := json.Unmarshal(payload, &victronMessage); err != nil {
-		return "", InfluxMessage{}, err
+		return "", InfluxMessage{}, fmt.Errorf("topic %q: %w", topic, err)
 	}
 
 	splitTopic := strings.Split(topic, "/")
@@ -282,12 +282,14 @@ func (o *handler) handle(msg *paho.Publish) {
 
 		writePoint(bucket, sensorInfluxMessage, o.client, o.organization)
 	} else if strings.Contains(msg.Topic, "victron") {
-		bucket, victronInfluxMessage, err := buildVictronPoint(msg.Topic, msg.Payload)
-		if err != nil {
-			fmt.Printf("Victron message could not be parsed (%s): %s", msg.Payload, err)
-			return
+		if !strings.HasSuffix(msg.Topic, "Batteries") {
+			bucket, victronInfluxMessage, err := buildVictronPoint(msg.Topic, msg.Payload)
+			if err != nil {
+				fmt.Printf("Victron message could not be parsed (%s): %s", msg.Payload, err)
+				return
+			}
+			writePoint(bucket, victronInfluxMessage, o.client, o.organization)
 		}
-		writePoint(bucket, victronInfluxMessage, o.client, o.organization)
 
 	} else {
 		fmt.Printf("Unknown topic: %s", msg.Topic)
