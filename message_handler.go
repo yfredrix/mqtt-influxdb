@@ -43,6 +43,11 @@ func splitTopic(topic string) (string, string, error) {
 	return mainTopic, subTopic, nil
 }
 
+type genericPayloadMessage struct {
+	Value     float64 `json:"value"`
+	Timestamp int64   `json:"timestamp"`
+}
+
 type sensorMessage struct {
 	Unit      string    `json:"unit"`
 	Value     float64   `json:"value"`
@@ -183,6 +188,45 @@ func buildSolarPoints(payload []byte) (map[string]InfluxMessage, error) {
 	return result, nil
 }
 
+func buildVictronPoint(topic string, payload []byte) (string, InfluxMessage, error) {
+	var victronMessage genericPayloadMessage
+	if err := json.Unmarshal(payload, &victronMessage); err != nil {
+		return "", InfluxMessage{}, fmt.Errorf("topic %q: %w", topic, err)
+	}
+
+	topicParts := strings.Split(topic, "/")
+	if len(topicParts) < 3 || topicParts[0] != "victron" {
+		return "", InfluxMessage{}, fmt.Errorf("topic is not in the correct format: %s", topic)
+	}
+
+	bucket := topicParts[0]
+	vrm_portal_id := topicParts[1]
+	serviceType := topicParts[2]
+	deviceInstance := ""
+	if len(topicParts) > 3 {
+		deviceInstance = topicParts[3]
+	}
+
+	fieldKey := "value"
+	if len(topicParts) > 4 {
+		fieldKey = strings.Join(topicParts[4:], "/")
+	}
+
+	point := InfluxMessage{
+		Measurement: serviceType,
+		Tags: map[string]string{
+			"vrm_portal_id":   vrm_portal_id,
+			"device_instance": deviceInstance,
+		},
+		Fields: map[string]interface{}{
+			fieldKey: victronMessage.Value,
+		},
+		Time: time.UnixMilli(victronMessage.Timestamp),
+	}
+
+	return bucket, point, nil
+}
+
 func handleSolarMessage(msg *paho.Publish, client influxdb2.Client, organization string) {
 	points, err := buildSolarPoints(msg.Payload)
 	if err != nil {
@@ -238,6 +282,16 @@ func (o *handler) handle(msg *paho.Publish) {
 		sensorInfluxMessage := toInfluxMessage(measurement, location, sensorId, sensorMessage)
 
 		writePoint(bucket, sensorInfluxMessage, o.client, o.organization)
+	} else if strings.HasPrefix(msg.Topic, "victron/") {
+		if !strings.HasSuffix(msg.Topic, "Batteries") {
+			bucket, victronInfluxMessage, err := buildVictronPoint(msg.Topic, msg.Payload)
+			if err != nil {
+				fmt.Printf("Victron message could not be parsed (%s): %s", msg.Payload, err)
+				return
+			}
+			writePoint(bucket, victronInfluxMessage, o.client, o.organization)
+		}
+
 	} else {
 		fmt.Printf("Unknown topic: %s", msg.Topic)
 		return
