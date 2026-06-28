@@ -94,11 +94,11 @@ func TestBuildVictronPoint_ExampleMessages(t *testing.T) {
 			if point.Measurement != tt.expectedMetric {
 				t.Errorf("expected measurement %q, got %q", tt.expectedMetric, point.Measurement)
 			}
-			if point.Tags["VRM_Portal_ID"] != tt.expectedPortal {
-				t.Errorf("expected VRM_Portal_ID %q, got %q", tt.expectedPortal, point.Tags["VRM_Portal_ID"])
+			if point.Tags["vrm_portal_id"] != tt.expectedPortal {
+				t.Errorf("expected vrm_portal_id %q, got %q", tt.expectedPortal, point.Tags["vrm_portal_id"])
 			}
-			if point.Tags["Device_Instance"] != tt.expectedDevice {
-				t.Errorf("expected Device_Instance %q, got %q", tt.expectedDevice, point.Tags["Device_Instance"])
+			if point.Tags["device_instance"] != tt.expectedDevice {
+				t.Errorf("expected device_instance %q, got %q", tt.expectedDevice, point.Tags["device_instance"])
 			}
 
 			gotValue, ok := point.Fields[tt.expectedField]
