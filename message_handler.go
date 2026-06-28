@@ -326,7 +326,7 @@ func (o *handler) handle(msg *paho.Publish) {
 
 		o.writePoint(bucket, sensorInfluxMessage)
 	} else if strings.HasPrefix(msg.Topic, "victron/") {
-		if !strings.HasSuffix(msg.Topic, "Batteries") {
+		if !strings.HasSuffix(msg.Topic, "Batteries") && !strings.HasSuffix(msg.Topic, "Network/Services") {
 			bucket, victronInfluxMessage, err := buildVictronPoint(msg.Topic, msg.Payload)
 			if err != nil {
 				fmt.Printf("Victron message could not be parsed (%s): %s", msg.Payload, err)
