@@ -33,7 +33,7 @@ const (
 	envDebug         = "DEBUG"         // if "true" then the libraries will be instructed to print debug info
 
 	envInfluxWriteBatchSize  = "INFLUXDB_WRITE_BATCH_SIZE"  // max points per write batch
-	envInfluxFlushIntervalMS = "INFLUXDB_FLUSH_INTERVAL_MS" // periodic flush interval in milliseconds
+	envInfluxFlushInterval = "INFLUXDB_FLUSH_INTERVAL_MS" // periodic flush interval in milliseconds
 )
 
 // config holds the configuration
@@ -134,7 +134,7 @@ func getConfig() (config, error) {
 	}
 	cfg.influxWriteBatchSize = uint(batchSize)
 
-	cfg.influxFlushIntervalMS, err = milliSecondsFromEnvWithDefault(envInfluxFlushIntervalMS, 1000)
+	cfg.influxFlushIntervalMS, err = milliSecondsFromEnvWithDefault(envInfluxFlushInterval, 1000)
 	if err != nil {
 		return config{}, err
 	}
