@@ -194,21 +194,21 @@ func buildVictronPoint(topic string, payload []byte) (string, InfluxMessage, err
 		return "", InfluxMessage{}, fmt.Errorf("topic %q: %w", topic, err)
 	}
 
-	splitTopic := strings.Split(topic, "/")
-	if len(splitTopic) < 3 {
+	topicParts := strings.Split(topic, "/")
+	if len(topicParts) < 3 || topicParts[0] != "victron" {
 		return "", InfluxMessage{}, fmt.Errorf("topic is not in the correct format: %s", topic)
 	}
 
-	bucket := splitTopic[0]
-	serviceType := splitTopic[2]
+	bucket := topicParts[0]
+	serviceType := topicParts[2]
 	deviceInstance := ""
-	if len(splitTopic) > 3 {
-		deviceInstance = splitTopic[3]
+	if len(topicParts) > 3 {
+		deviceInstance = topicParts[3]
 	}
 
 	fieldKey := "value"
-	if len(splitTopic) > 4 {
-		fieldKey = strings.Join(splitTopic[4:], "/")
+	if len(topicParts) > 4 {
+		fieldKey = strings.Join(topicParts[4:], "/")
 	}
 
 	point := InfluxMessage{
